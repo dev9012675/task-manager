@@ -8,10 +8,14 @@ import {
   ValidationPipe,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDTO } from './dtos/create-task-dto';
 import { UpdateTaskDTO } from './dtos/update-task-dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { Roles } from 'src/auth/decorators/role.decorator';
 
 @Controller('api/tasks')
 export class TasksController {
@@ -35,8 +39,9 @@ export class TasksController {
     }),
   )
   @Post()
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles(`manager`)
   async create(@Body() task: CreateTaskDTO) {
-    console.log(task);
     return await this.taskService.create(task);
   }
 

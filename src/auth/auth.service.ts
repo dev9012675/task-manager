@@ -2,7 +2,7 @@ import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import refreshJwtConfig from './config/refresh-jwt.config';
-import { PayloadType } from './types/auth.types';
+import { Payload } from './types/auth.types';
 import * as argon2 from 'argon2';
 import { ConfigType } from '@nestjs/config';
 import { LoginDTO } from './dtos/login.dto';
@@ -28,7 +28,7 @@ export class AuthService {
     if (passwordMatched) {
       delete user.password;
 
-      const payload: PayloadType = {
+      const payload: Payload = {
         email: user.email,
         userId: user._id.toString(),
         role: user.role,
@@ -50,7 +50,7 @@ export class AuthService {
     }
   }
 
-  async generateTokens(payload: PayloadType) {
+  async generateTokens(payload: Payload) {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload),
       this.jwtService.signAsync(payload, this.refreshTokenConfig),
@@ -64,7 +64,7 @@ export class AuthService {
 
   async refreshToken(id: string) {
     const user = await this.usersService.findById(id);
-    const payload: PayloadType = {
+    const payload: Payload = {
       email: user.email,
       userId: user._id.toString(),
       role: user.role,

@@ -1,6 +1,6 @@
 import {
   IsString,
-  IsNotEmpty,
+  IsMongoId,
   IsEnum,
   IsOptional,
   IsDateString,
@@ -27,4 +27,8 @@ export class UpdateTaskDTO {
   @IsOptional()
   @IsDateString()
   dueDate?: Date;
+
+  @IsOptional()
+  @IsMongoId()
+  worker?: string;
 }

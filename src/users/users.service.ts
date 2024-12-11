@@ -19,7 +19,7 @@ export class UsersService {
     });
 
     delete createdUser.password;
-    return createdUser;
+    return { message: 'User created successfully' };
   }
 
   async findOne(data: Partial<User>): Promise<User & { _id: Types.ObjectId }> {

@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   IsDateString,
+  IsMongoId,
 } from 'class-validator';
 import { priority, status } from '../enums/tasks.enums';
 
@@ -27,4 +28,8 @@ export class CreateTaskDTO {
   @IsNotEmpty()
   @IsDateString()
   dueDate: Date;
+
+  @IsNotEmpty()
+  @IsMongoId()
+  worker: string;
 }

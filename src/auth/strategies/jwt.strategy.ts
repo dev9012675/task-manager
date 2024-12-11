@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { PayloadType } from '../types/auth.types';
+import { Payload } from '../types/auth.types';
 import * as dotenv from 'dotenv';
 import { Request } from 'express';
 dotenv.config();
@@ -30,7 +30,7 @@ export class JWTStrategy extends PassportStrategy(Strategy) {
     return null;
   }
 
-  async validate(payload: PayloadType) {
+  async validate(payload: Payload) {
     return { userId: payload.userId, email: payload.email, role: payload.role };
   }
 }

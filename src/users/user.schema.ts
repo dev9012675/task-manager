@@ -21,6 +21,7 @@ export type UserDocument = HydratedDocument<User>;
       return ret;
     },
   },
+  discriminatorKey: `userType`,
 })
 export class User {
   @Prop({ required: true })
@@ -38,7 +39,7 @@ export class User {
   @Prop({ type: String, required: true, enum: Gender })
   gender: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   phone: string;
 
   @Prop({ type: String, required: true, enum: Role, default: Role.Worker })

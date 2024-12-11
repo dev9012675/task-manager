@@ -1,5 +1,14 @@
-import { IsEmail, IsNotEmpty, IsString, IsEnum } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  IsEnum,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 import { Gender, Role } from '../enums/users.enums';
+import { CreateWorkerDTO } from './worker-dto';
+import { Type } from 'class-transformer';
 
 export class CreateUserDTO {
   @IsString()
@@ -27,4 +36,10 @@ export class CreateUserDTO {
 
   @IsEnum(Role)
   role: Role = Role.Worker;
+
+  @ValidateIf((o) => o.role === Role.Worker)
+  @IsNotEmpty()
+  @ValidateNested()
+  @Type(() => CreateWorkerDTO)
+  worker?: CreateWorkerDTO;
 }

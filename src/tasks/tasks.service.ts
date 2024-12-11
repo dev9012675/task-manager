@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -42,11 +43,13 @@ export class TasksService {
 
   async create(task: CreateTaskDTO, user: Payload) {
     try {
-      const worker = await this.usersService.findById(task.worker);
+      const worker = await this.usersService.findWorkerById(task.worker);
       if (!worker) {
         throw new BadRequestException(`Worker not found`);
       } else if (worker.role !== Role.Worker) {
-        throw new BadRequestException(`Task cannot be assigned to manager`);
+        throw new ForbiddenException(`Tasks can only be assigned to workers`);
+      } else if(worker.manager.toString() !== user.userId){
+        throw new ForbiddenException(`Cannot assign tasks to workers outside your team.`);
       }
       await this.taskModel.create({ ...task, manager: user.userId });
       return { message: 'Task created successfully' };
@@ -58,25 +61,27 @@ export class TasksService {
   async update(id: string, data: UpdateTaskDTO, user: Payload) {
     try {
       const task = await this.taskModel.findById(id);
-      //const currentUser = await this.usersService.findById(user.userId);
+      const currentUser = await this.usersService.findById(user.userId);
 
       if (!task) {
         throw new NotFoundException('Task not found.');
       }
-      /*
-      if (currentUser.id !== task.manager.toString()) {
-        throw new UnauthorizedException(
-          `Tasks may be modified only by the manager who created them.`,
+      
+      if (!(currentUser.id === task.worker.toString() || currentUser.id === task.manager.toString())) {
+        throw new  ForbiddenException(
+          `Tasks may be modified only by their manager or worker.`,
         );
       } 
-        */
+        
 
       if (typeof data.worker !== `undefined`) {
-        const worker = await this.usersService.findById(data.worker);
+        const worker = await this.usersService.findWorkerById(data.worker);
         if (!worker) {
           throw new BadRequestException(`Worker not found`);
         } else if (worker.role !== Role.Worker) {
-          throw new BadRequestException(`Task cannot be assigned to manager`);
+          throw new ForbiddenException(`Tasks can only be assigned to workers`);
+        } else if(worker.manager.toString() !== user.userId){
+          throw new ForbiddenException(`Cannot assign tasks to workers outside your team.`);
         }
       }
       await this.taskModel.findByIdAndUpdate(id, data);

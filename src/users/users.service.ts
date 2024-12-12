@@ -82,7 +82,6 @@ export class UsersService {
     return await this.workerModel.findById(id);
   }
 
-
   async updateHashedRefreshToken(id: string, hashedRefreshToken: string) {
     return await this.userModel.findByIdAndUpdate(id, {
       hashedRefreshToken: hashedRefreshToken,

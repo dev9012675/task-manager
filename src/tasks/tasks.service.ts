@@ -48,8 +48,10 @@ export class TasksService {
         throw new BadRequestException(`Worker not found`);
       } else if (worker.role !== Role.Worker) {
         throw new ForbiddenException(`Tasks can only be assigned to workers`);
-      } else if(worker.manager.toString() !== user.userId){
-        throw new ForbiddenException(`Cannot assign tasks to workers outside your team.`);
+      } else if (worker.manager.toString() !== user.userId) {
+        throw new ForbiddenException(
+          `Cannot assign tasks to workers outside your team.`,
+        );
       }
       await this.taskModel.create({ ...task, manager: user.userId });
       return { message: 'Task created successfully' };
@@ -66,13 +68,17 @@ export class TasksService {
       if (!task) {
         throw new NotFoundException('Task not found.');
       }
-      
-      if (!(currentUser.id === task.worker.toString() || currentUser.id === task.manager.toString())) {
-        throw new  ForbiddenException(
+
+      if (
+        !(
+          currentUser.id === task.worker.toString() ||
+          currentUser.id === task.manager.toString()
+        )
+      ) {
+        throw new ForbiddenException(
           `Tasks may be modified only by their manager or worker.`,
         );
-      } 
-        
+      }
 
       if (typeof data.worker !== `undefined`) {
         const worker = await this.usersService.findWorkerById(data.worker);
@@ -80,8 +86,10 @@ export class TasksService {
           throw new BadRequestException(`Worker not found`);
         } else if (worker.role !== Role.Worker) {
           throw new ForbiddenException(`Tasks can only be assigned to workers`);
-        } else if(worker.manager.toString() !== user.userId){
-          throw new ForbiddenException(`Cannot assign tasks to workers outside your team.`);
+        } else if (worker.manager.toString() !== user.userId) {
+          throw new ForbiddenException(
+            `Cannot assign tasks to workers outside your team.`,
+          );
         }
       }
       await this.taskModel.findByIdAndUpdate(id, data);

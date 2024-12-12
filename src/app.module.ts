@@ -7,6 +7,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ManagersModule } from './managers/managers.module';
+import { ChatModule } from './chat/chat.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { ManagersModule } from './managers/managers.module';
     UsersModule,
     AuthModule,
     ManagersModule,
+    ChatModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

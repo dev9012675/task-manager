@@ -33,20 +33,23 @@ export class MessagesController {
 
   @Get()
   async findAll(@Res({ passthrough: true }) res: Response) {
-    const messages = await  this.messageService.findAll();
-    if(messages.length === 0) {
-      res.status(204)
-      return 
+    const messages = await this.messageService.findAll();
+    if (messages.length === 0) {
+      res.status(204);
+      return;
     }
-    return messages
+    return messages;
   }
 
   @Get(`:id`)
-  async findOne(@Param(`id`) id: string, @Res({ passthrough: true }) res: Response) {
+  async findOne(
+    @Param(`id`) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const message = await this.messageService.findOne(id);
     if (!message) {
-      res.status(204)
-      return 
+      res.status(204);
+      return;
     }
     return message;
   }
@@ -59,22 +62,29 @@ export class MessagesController {
     }),
   )
   @Patch(`:id`)
-  async update(@Body() content:UpdateMessageDTO , @Param(`id`) id: string, @Res({ passthrough: true }) res: Response){
-     const message = await this.messageService.update(id , content)
-     if (!message) {
-      res.status(204)
-      return 
+  async update(
+    @Body() content: UpdateMessageDTO,
+    @Param(`id`) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const message = await this.messageService.update(id, content);
+    if (!message) {
+      res.status(204);
+      return;
     }
-    return {message:`Message updated successfully`};
+    return { message: `Message updated successfully` };
   }
 
   @Delete(`:id`)
-  async delete(@Param(`id`) id: string ,  @Res({ passthrough: true }) res:Response) {
-    const message = await this.messageService.delete(id)
+  async delete(
+    @Param(`id`) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const message = await this.messageService.delete(id);
     if (!message) {
-      res.status(204)
-      return 
+      res.status(204);
+      return;
     }
-    return {message:`Message deleted successfully`};
+    return { message: `Message deleted successfully` };
   }
 }

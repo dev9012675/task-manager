@@ -29,11 +29,11 @@ export class MessagesService {
     return await this.messageModel.findById(id);
   }
 
-  async update(id:string , content:UpdateMessageDTO ){
-    return this.messageModel.findByIdAndUpdate(id , content)
+  async update(id: string, content: UpdateMessageDTO) {
+    return this.messageModel.findByIdAndUpdate(id, content);
   }
 
-  async delete(id:string){
-    return this.messageModel.findByIdAndDelete(id)
+  async delete(id: string) {
+    return this.messageModel.findByIdAndDelete(id);
   }
 }

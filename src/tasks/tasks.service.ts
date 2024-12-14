@@ -13,12 +13,14 @@ import { UpdateTaskDTO } from './dtos/update-task-dto';
 import { Payload } from 'src/auth/types/auth.types';
 import { UsersService } from 'src/users/users.service';
 import { Role } from 'src/users/enums/users.enums';
+import { RoomsService } from 'src/rooms/rooms.service';
 
 @Injectable()
 export class TasksService {
   constructor(
     @InjectModel(Task.name) private taskModel: Model<Task>,
-    private usersService: UsersService,
+    private usersService: UsersService, 
+    private roomsService:RoomsService
   ) {}
 
   async findAll() {
@@ -53,7 +55,11 @@ export class TasksService {
           `Cannot assign tasks to workers outside your team.`,
         );
       }
-      await this.taskModel.create({ ...task, manager: user.userId });
+      const createdTask = await this.taskModel.create({ ...task, manager: user.userId });
+      await this.roomsService.create({
+        task: createdTask.id,
+        members: [createdTask.manager.toString(), createdTask.worker.toString()],
+      })
       return { message: 'Task created successfully' };
     } catch (err) {
       throw err;

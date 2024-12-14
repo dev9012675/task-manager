@@ -5,6 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ChatGateway } from 'src/chat/chat.gateway';
 import { UpdateMessageDTO } from './dtos/update-message-dto';
+import { SearchMessageDTO } from './dtos/message-search-dto';
 
 @Injectable()
 export class MessagesService {
@@ -21,8 +22,10 @@ export class MessagesService {
     };
   }
 
-  async findAll() {
-    return await this.messageModel.find();
+  async findMultiple(search:SearchMessageDTO) {
+    const roomFilter = search.room ? { room: search.room } : {};
+    const query = { ...roomFilter };
+    return await this.messageModel.find(query).sort({createdAt:1});
   }
 
   async findOne(id: string) {

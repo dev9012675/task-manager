@@ -13,7 +13,14 @@ export class Room {
   })
   task: mongoose.Schema.Types.ObjectId;
 
-  @Prop([{ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] }])
+  @Prop([
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: [],
+      index: true,
+    },
+  ])
   members: mongoose.Schema.Types.ObjectId[];
 }
 

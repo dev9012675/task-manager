@@ -9,11 +9,14 @@ import {
   Param,
   Delete,
   Patch,
+  Query,
+  Search,
 } from '@nestjs/common';
 import { CreateMessageDTO } from './dtos/create-message-dto';
 import { MessagesService } from './messages.service';
 import { Response } from 'express';
 import { UpdateMessageDTO } from './dtos/update-message-dto';
+import { SearchMessageDTO } from './dtos/message-search-dto';
 
 @Controller('api/messages')
 export class MessagesController {
@@ -28,12 +31,20 @@ export class MessagesController {
   )
   @Post()
   async create(@Body() message: CreateMessageDTO) {
+    console.log(`Message to be Created: ${message}`);
     return this.messageService.create(message);
   }
 
   @Get()
-  async findAll(@Res({ passthrough: true }) res: Response) {
-    const messages = await this.messageService.findAll();
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
+  async findAll(@Query() search:SearchMessageDTO ,   @Res({ passthrough: true }) res: Response) {
+    const messages = await this.messageService.findMultiple(search);
     if (messages.length === 0) {
       res.status(204);
       return;

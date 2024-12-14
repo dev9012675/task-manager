@@ -1,14 +1,33 @@
-import { Controller, Get, Res, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Res,
+  Param,
+  Body,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { Response } from 'express';
+import { RoomSearchDTO } from './dtos/room-search-dto';
 
 @Controller('api/rooms')
 export class RoomsController {
   constructor(private roomService: RoomsService) {}
 
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   @Get()
-  async findAll(@Res({ passthrough: true }) res: Response) {
-    const rooms = await this.roomService.findAll();
+  async findMultiple(
+    @Body() search: RoomSearchDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const rooms = await this.roomService.findMultiple(search);
     if (rooms.length === 0) {
       res.status(204);
       return;

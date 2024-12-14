@@ -1,5 +1,6 @@
 import {
   ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   SubscribeMessage,
   WebSocketGateway,
@@ -14,6 +15,8 @@ import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import * as dotenv from 'dotenv';
+import { Payload } from 'src/auth/types/auth.types';
+import { RoomsService } from 'src/rooms/rooms.service';
 dotenv.config();
 
 @WebSocketGateway({
@@ -24,7 +27,10 @@ dotenv.config();
 })
 @UseGuards(WsJwtGuard)
 export class ChatGateway implements OnGatewayConnection {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private roomsService: RoomsService,
+  ) {}
 
   @WebSocketServer()
   server: Server<any, ServerToClientEvents>;
@@ -37,16 +43,28 @@ export class ChatGateway implements OnGatewayConnection {
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {
       console.log(client.id);
-      const { authorization } = client.handshake.headers;
+      //const { authorization } = client.handshake.headers;
+      const { authorization } = client.handshake.auth;
       if (!authorization) {
         client.disconnect();
         return;
       }
       const token = authorization.split(` `)[1];
-      await this.jwtService.verifyAsync(token, {
+      const payload: Payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.JWT_SECRET,
       });
+      console.log(`User Connected:${payload.userId}`);
+      const rooms = await this.roomsService.findMultiple({
+        member: payload.userId,
+      });
+      //console.log(rooms);
+      rooms.forEach((room) => {
+        console.log(`Room ID: ${room.id}`);
+        client.join(room.id);
+      });
+      this.server.to(client.id).emit(`roomList`, rooms);
     } catch (e) {
+      console.log(`The connection could not be established`);
       client.disconnect();
       return;
     }
@@ -80,7 +98,17 @@ export class ChatGateway implements OnGatewayConnection {
     client.use((req, next) => {});
   }*/
 
+  /*
+    @SubscribeMessage('joinRoom')
+    handleJoinRoom(@MessageBody() data:{task:string} , @ConnectedSocket() client:Socket): string {
+      console.log(`Join Room data:${data.task}`)
+      client.join()
+      return 'Hello world!';
+    }
+      */
+
   sendMessage(message: Message) {
-    this.server.emit(`newMessage`, message);
+    console.log(`Message room ID:${message.room.toString()}`);
+    this.server.to(message.room.toString()).emit(`newMessage`, message);
   }
 }

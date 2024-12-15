@@ -1,8 +1,7 @@
-import { IsMongoId, IsOptional } from "class-validator";
+import { IsMongoId, IsOptional } from 'class-validator';
 
 export class SearchMessageDTO {
-
-    @IsOptional()
-    @IsMongoId()
-    room?:string
+  @IsOptional()
+  @IsMongoId()
+  room?: string;
 }

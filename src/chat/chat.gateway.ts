@@ -1,22 +1,23 @@
 import {
   ConnectedSocket,
-  MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
-  WsException,
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { ServerToClientEvents } from './types/chat.types';
 import { Message } from 'src/messages/message.schema';
-import { UnauthorizedException, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from 'src/auth/guards/ws-jwt.guard';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import * as dotenv from 'dotenv';
 import { Payload } from 'src/auth/types/auth.types';
 import { RoomsService } from 'src/rooms/rooms.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { Notification } from 'src/notifications/notification.schema';
 dotenv.config();
 
 @WebSocketGateway({
@@ -26,7 +27,8 @@ dotenv.config();
   },
 })
 @UseGuards(WsJwtGuard)
-export class ChatGateway implements OnGatewayConnection {
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private users: Map<string, Socket> = new Map();
   constructor(
     private jwtService: JwtService,
     private roomsService: RoomsService,
@@ -36,7 +38,7 @@ export class ChatGateway implements OnGatewayConnection {
   server: Server<any, ServerToClientEvents>;
 
   @SubscribeMessage('message')
-  handleMessage(client: any, payload: any): string {
+  handleMessage(): string {
     return 'Hello world!';
   }
 
@@ -54,6 +56,8 @@ export class ChatGateway implements OnGatewayConnection {
         secret: process.env.JWT_SECRET,
       });
       console.log(`User Connected:${payload.userId}`);
+      this.users.set(payload.userId, client);
+      console.log(`Users`, this.users)
       const rooms = await this.roomsService.findMultiple({
         member: payload.userId,
       });
@@ -107,8 +111,28 @@ export class ChatGateway implements OnGatewayConnection {
     }
       */
 
+  handleDisconnect(client: Socket) {
+     this.users.forEach((socket , userId)=> {
+        if(socket.id === client.id){
+           this.users.delete(userId)
+        }
+    })
+    console.log(this.users)
+    console.log(`User disconnected`);
+  }
+
   sendMessage(message: Message) {
     console.log(`Message room ID:${message.room.toString()}`);
     this.server.to(message.room.toString()).emit(`newMessage`, message);
+  }
+
+  async sendNotification(notification: Notification) {
+    notification.to.forEach((user) => {
+      if (this.users.has(user.toString())) {
+        this.server
+          .to(this.users.get(user.toString()).id)
+          .emit(`sendNotification`, { description: notification.description });
+      }
+    });
   }
 }

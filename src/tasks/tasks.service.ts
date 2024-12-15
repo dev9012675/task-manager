@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Task } from './task.schema';
@@ -14,13 +13,15 @@ import { Payload } from 'src/auth/types/auth.types';
 import { UsersService } from 'src/users/users.service';
 import { Role } from 'src/users/enums/users.enums';
 import { RoomsService } from 'src/rooms/rooms.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class TasksService {
   constructor(
     @InjectModel(Task.name) private taskModel: Model<Task>,
-    private usersService: UsersService, 
-    private roomsService:RoomsService
+    private usersService: UsersService,
+    private roomsService: RoomsService,
+    private notificationService: NotificationsService,
   ) {}
 
   async findAll() {
@@ -55,11 +56,17 @@ export class TasksService {
           `Cannot assign tasks to workers outside your team.`,
         );
       }
-      const createdTask = await this.taskModel.create({ ...task, manager: user.userId });
+      const createdTask = await this.taskModel.create({
+        ...task,
+        manager: user.userId,
+      });
       await this.roomsService.create({
         task: createdTask.id,
-        members: [createdTask.manager.toString(), createdTask.worker.toString()],
-      })
+        members: [
+          createdTask.manager.toString(),
+          createdTask.worker.toString(),
+        ],
+      });
       return { message: 'Task created successfully' };
     } catch (err) {
       throw err;
@@ -67,13 +74,20 @@ export class TasksService {
   }
 
   async update(id: string, data: UpdateTaskDTO, user: Payload) {
+    const session = await this.taskModel.db.startSession();
+    session.startTransaction();
     try {
-      const task = await this.taskModel.findById(id);
-      const currentUser = await this.usersService.findById(user.userId);
+      const task = await this.taskModel.findById(id).session(session);
+      const currentUser = await this.usersService.findById(
+        user.userId,
+        session,
+      );
 
       if (!task) {
         throw new NotFoundException('Task not found.');
       }
+
+      const notificationDescription = `Task ${task.title} Has been updated`;
 
       if (
         !(
@@ -87,7 +101,10 @@ export class TasksService {
       }
 
       if (typeof data.worker !== `undefined`) {
-        const worker = await this.usersService.findWorkerById(data.worker);
+        const worker = await this.usersService.findWorkerById(
+          data.worker,
+          session,
+        );
         if (!worker) {
           throw new BadRequestException(`Worker not found`);
         } else if (worker.role !== Role.Worker) {
@@ -98,10 +115,26 @@ export class TasksService {
           );
         }
       }
-      await this.taskModel.findByIdAndUpdate(id, data);
-      return { message: 'Task updated successfully' };
+      console.log(data)
+      const updatedTask = await this.taskModel
+        .findByIdAndUpdate(id, data  , {new:true})
+        .session(session);
+       await this.notificationService.create({
+        description: notificationDescription,
+        to: [updatedTask.worker.toString(), updatedTask.manager.toString()],
+      });
+      
+
+      
+      await session.commitTransaction()
+      return { message: 'Task updated successfully' ,
+        data:updatedTask
+       };
     } catch (err) {
+      await session.abortTransaction();
       throw err;
+    } finally {
+      await session.endSession();
     }
   }
 

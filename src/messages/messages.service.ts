@@ -22,10 +22,10 @@ export class MessagesService {
     };
   }
 
-  async findMultiple(search:SearchMessageDTO) {
+  async findMultiple(search: SearchMessageDTO) {
     const roomFilter = search.room ? { room: search.room } : {};
     const query = { ...roomFilter };
-    return await this.messageModel.find(query).sort({createdAt:1});
+    return await this.messageModel.find(query).sort({ createdAt: 1 });
   }
 
   async findOne(id: string) {

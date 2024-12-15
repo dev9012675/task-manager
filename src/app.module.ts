@@ -11,6 +11,7 @@ import { ChatModule } from './chat/chat.module';
 import { MessagesModule } from './messages/messages.module';
 import { RoomsController } from './rooms/rooms.controller';
 import { RoomsModule } from './rooms/rooms.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RoomsModule } from './rooms/rooms.module';
     ChatModule,
     MessagesModule,
     RoomsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

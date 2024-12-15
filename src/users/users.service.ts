@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './user.schema';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import { CreateUserDTO } from './dtos/create-user-dto';
 import * as bcrypt from 'bcryptjs';
 import { UnauthorizedException } from '@nestjs/common';
@@ -70,19 +70,29 @@ export class UsersService {
     return user;
   }
 
-  async findById(id: string) {
-    return await this.userModel.findById(id);
+  async findById(id: string, session?: ClientSession) {
+    return session
+      ? await this.userModel.findById(id).session(session)
+      : await this.userModel.findById(id);
   }
 
-  async findManagerById(id: string) {
-    return await this.managerModel.findById(id);
+  async findManagerById(id: string, session?: ClientSession) {
+    return session
+      ? await this.managerModel.findById(id).session(session)
+      : await this.managerModel.findById(id);
   }
 
-  async findWorkerById(id: string) {
-    return await this.workerModel.findById(id);
+  async findWorkerById(id: string, session?: ClientSession) {
+    return session
+      ? await this.workerModel.findById(id).session(session)
+      : await this.workerModel.findById(id);
   }
 
-  async updateHashedRefreshToken(id: string, hashedRefreshToken: string) {
+  async updateHashedRefreshToken(
+    id: string,
+    hashedRefreshToken: string,
+    session?: ClientSession,
+  ) {
     return await this.userModel.findByIdAndUpdate(id, {
       hashedRefreshToken: hashedRefreshToken,
     });

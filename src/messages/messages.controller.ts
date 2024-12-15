@@ -10,7 +10,6 @@ import {
   Delete,
   Patch,
   Query,
-  Search,
 } from '@nestjs/common';
 import { CreateMessageDTO } from './dtos/create-message-dto';
 import { MessagesService } from './messages.service';
@@ -43,7 +42,10 @@ export class MessagesController {
       forbidNonWhitelisted: true,
     }),
   )
-  async findAll(@Query() search:SearchMessageDTO ,   @Res({ passthrough: true }) res: Response) {
+  async findAll(
+    @Query() search: SearchMessageDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const messages = await this.messageService.findMultiple(search);
     if (messages.length === 0) {
       res.status(204);

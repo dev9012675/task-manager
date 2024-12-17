@@ -21,6 +21,7 @@ export type UserDocument = HydratedDocument<User>;
       return ret;
     },
   },
+  timestamps: true,
   discriminatorKey: `userType`,
 })
 export class User {
@@ -47,6 +48,12 @@ export class User {
 
   @Prop()
   hashedRefreshToken: string;
+
+  @Prop()
+  verificationCode?: number;
+
+  @Prop()
+  verificationExpiration?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

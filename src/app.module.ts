@@ -12,6 +12,7 @@ import { MessagesModule } from './messages/messages.module';
 import { RoomsController } from './rooms/rooms.controller';
 import { RoomsModule } from './rooms/rooms.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { UtilityModule } from './utility/utility.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     MessagesModule,
     RoomsModule,
     NotificationsModule,
+    UtilityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

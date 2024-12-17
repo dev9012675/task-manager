@@ -115,21 +115,17 @@ export class TasksService {
           );
         }
       }
-      console.log(data)
+      console.log(data);
       const updatedTask = await this.taskModel
-        .findByIdAndUpdate(id, data  , {new:true})
+        .findByIdAndUpdate(id, data, { new: true })
         .session(session);
-       await this.notificationService.create({
+      await this.notificationService.create({
         description: notificationDescription,
         to: [updatedTask.worker.toString(), updatedTask.manager.toString()],
       });
-      
 
-      
-      await session.commitTransaction()
-      return { message: 'Task updated successfully' ,
-        data:updatedTask
-       };
+      await session.commitTransaction();
+      return { message: 'Task updated successfully', data: updatedTask };
     } catch (err) {
       await session.abortTransaction();
       throw err;

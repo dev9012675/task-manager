@@ -9,8 +9,8 @@ import { ChatGateway } from 'src/chat/chat.gateway';
 export class NotificationsService {
   constructor(
     @InjectModel(Notification.name)
-    private notificationModel: Model<Notification> ,
-    private chatGateway:ChatGateway
+    private notificationModel: Model<Notification>,
+    private chatGateway: ChatGateway,
   ) {}
 
   async findMultiple() {
@@ -22,11 +22,11 @@ export class NotificationsService {
   }
 
   async create(data: CreateNotificationDTO) {
-    const notification =  await this.notificationModel.create(data);
+    const notification = await this.notificationModel.create(data);
     if (!notification) {
       throw new Error(`Notification could not be created`);
     }
-    await this.chatGateway.sendNotification(notification)
+    await this.chatGateway.sendNotification(notification);
   }
 
   async consume(

@@ -57,7 +57,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
       console.log(`User Connected:${payload.userId}`);
       this.users.set(payload.userId, client);
-      console.log(`Users`, this.users)
+      console.log(`Users`, this.users);
       const rooms = await this.roomsService.findMultiple({
         member: payload.userId,
       });
@@ -112,12 +112,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       */
 
   handleDisconnect(client: Socket) {
-     this.users.forEach((socket , userId)=> {
-        if(socket.id === client.id){
-           this.users.delete(userId)
-        }
-    })
-    console.log(this.users)
+    this.users.forEach((socket, userId) => {
+      if (socket.id === client.id) {
+        this.users.delete(userId);
+      }
+    });
+    console.log(this.users);
     console.log(`User disconnected`);
   }
 

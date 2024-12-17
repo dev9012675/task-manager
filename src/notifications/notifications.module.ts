@@ -11,7 +11,7 @@ import { ChatModule } from 'src/chat/chat.module';
     MongooseModule.forFeature([
       { name: Notification.name, schema: NotificationSchema },
     ]),
-    ChatModule
+    ChatModule,
   ],
   controllers: [NotificationsController],
   providers: [NotificationsService],

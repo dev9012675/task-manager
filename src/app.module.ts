@@ -1,18 +1,18 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TasksModule } from './tasks/tasks.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
-import { ManagersModule } from './managers/managers.module';
-import { ChatModule } from './chat/chat.module';
-import { MessagesModule } from './messages/messages.module';
-import { RoomsController } from './rooms/rooms.controller';
-import { RoomsModule } from './rooms/rooms.module';
-import { NotificationsModule } from './notifications/notifications.module';
-import { UtilityModule } from './utility/utility.module';
+import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { ManagersModule } from './modules/managers/managers.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { MessagesModule } from './modules/messages/messages.module';
+import { RoomsController } from './modules/rooms/rooms.controller';
+import { RoomsModule } from './modules/rooms/rooms.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { UtilityModule } from './modules/utility/utility.module';
 
 @Module({
   imports: [

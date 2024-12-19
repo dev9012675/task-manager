@@ -26,6 +26,14 @@ export class Task {
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
   worker: mongoose.Schema.Types.ObjectId;
+
+  @Prop([{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }])
+  collaborators?: mongoose.Schema.Types.ObjectId[];
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);
+
+TaskSchema.index({
+  title: 'text',
+  description: 'text',
+});

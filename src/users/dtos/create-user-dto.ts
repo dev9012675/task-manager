@@ -5,6 +5,7 @@ import {
   IsEnum,
   ValidateIf,
   ValidateNested,
+  IsPhoneNumber,
 } from 'class-validator';
 import { Gender, Role } from '../enums/users.enums';
 import { CreateWorkerDTO } from './worker-dto';
@@ -29,6 +30,7 @@ export class CreateUserDTO {
 
   @IsString()
   @IsNotEmpty()
+  @IsPhoneNumber()
   phone: string;
 
   @IsEnum(Gender)

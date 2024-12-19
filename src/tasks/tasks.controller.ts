@@ -10,6 +10,8 @@ import {
   Delete,
   UseGuards,
   ForbiddenException,
+  Query,
+  Res,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDTO } from './dtos/create-task-dto';
@@ -20,19 +22,60 @@ import { Roles } from 'src/auth/decorators/role.decorator';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { Payload } from 'src/auth/types/auth.types';
 import { Role } from 'src/users/enums/users.enums';
+import { TaskSearchDTO } from './dtos/task-search-dto';
+import { Response } from 'express';
+import { IResponse } from 'src/common/interfaces/response.interface';
 
 @Controller('api/tasks')
 export class TasksController {
   constructor(private readonly taskService: TasksService) {}
 
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   @Get()
-  async findAll() {
-    return this.taskService.findAll();
+  @UseGuards(JwtAuthGuard)
+  async findAll(
+    @Query() search: TaskSearchDTO,
+    @CurrentUser() user: Payload,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<IResponse> {
+    const data = await this.taskService.findAll(search, user);
+    if (data[0].tasks.length === 0) {
+      res.status(204);
+      return;
+    }
+
+    return {
+      message: 'Tasks retrieved successfully',
+      data: {
+        tasks: data[0]?.tasks || [],
+        totalCount: data[0]?.totalCount[0]?.count || 0,
+      },
+    };
   }
 
   @Get(`:id`)
-  async findOne(@Param(`id`) id: string) {
-    return this.taskService.findOne(id);
+  @UseGuards(JwtAuthGuard)
+  async findOne(
+    @Param(`id`) id: string,
+    @CurrentUser() user: Payload,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<IResponse> {
+    const result = await this.taskService.findOne(id, user);
+    if (!result) {
+      res.status(204);
+      return;
+    }
+
+    return {
+      message: 'Task retrieved successfully',
+      data: result,
+    };
   }
 
   @UsePipes(
@@ -62,7 +105,7 @@ export class TasksController {
     @Param(`id`) id: string,
     @Body() task: UpdateTaskDTO,
     @CurrentUser() user: Payload,
-  ) {
+  ): Promise<IResponse> {
     try {
       switch (user.role) {
         case Role.Manager:
@@ -71,7 +114,7 @@ export class TasksController {
         case Role.Worker:
           return task.status
             ? this.taskService.update(id, { status: task.status }, user)
-            : { message: 'Task updated successfully' };
+            : { message: 'Workers can only update task status' };
 
         default:
           throw new ForbiddenException(`Invalid role.`);

@@ -4,6 +4,7 @@ import {
   IsEnum,
   ValidateNested,
   IsOptional,
+  IsPhoneNumber,
 } from 'class-validator';
 import { Gender } from '../enums/users.enums';
 import { UpdateWorkerDTO } from './worker-dto';
@@ -25,6 +26,7 @@ export class UpdateUserDTO {
 
   @IsString()
   @IsOptional()
+  @IsPhoneNumber()
   phone?: string;
 
   @IsEnum(Gender)
@@ -41,4 +43,3 @@ export class UpdateUserDTO {
   @Type(() => UpdateManagerDTO)
   manager?: UpdateManagerDTO;
 }
-

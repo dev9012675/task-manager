@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './user.schema';
-import { ClientSession, Model } from 'mongoose';
+import mongoose, { ClientSession, Model, Schema } from 'mongoose';
 import { CreateUserDTO } from './dtos/create-user-dto';
 import * as bcrypt from 'bcryptjs';
 import { UnauthorizedException } from '@nestjs/common';
@@ -20,6 +20,7 @@ import { Payload } from 'src/auth/types/auth.types';
 import { Role } from './enums/users.enums';
 import { VerifyDTO } from './dtos/verify-dto';
 import { UtilityService } from 'src/utility/utility.service';
+import { Document } from 'mongoose';
 
 @Injectable()
 export class UsersService {
@@ -115,6 +116,7 @@ export class UsersService {
   }
 
   async update(newData: UpdateUserDTO, currentUser: Payload) {
+    let user: unknown;
     const session = await this.userModel.startSession();
     session.startTransaction();
     const manager = newData.manager ?? {};
@@ -127,38 +129,46 @@ export class UsersService {
 
       switch (currentUser.role) {
         case Role.Manager:
-          await this.managerModel
-            .findByIdAndUpdate(currentUser.userId, {
-              ...newData,
-              ...manager,
-            })
+          user = await this.managerModel
+            .findByIdAndUpdate(
+              currentUser.userId,
+              {
+                ...newData,
+                ...manager,
+              },
+              { new: true, runValidators: true },
+            )
             .session(session);
           break;
         case Role.Worker:
-          const managerCheck = await this.userModel
+          /*const managerCheck = await this.userModel
             .findById(worker.manager)
             .session(session);
           if (!managerCheck || managerCheck.role !== Role.Manager) {
             throw new ConflictException(`Invalid user provided`);
-          }
-          const updatedWorker = await this.workerModel
-            .findByIdAndUpdate(currentUser.userId, {
-              ...newData,
-              ...worker,
-            })
+          }*/
+          user = await this.workerModel
+            .findByIdAndUpdate(
+              currentUser.userId,
+              {
+                ...newData,
+                ...worker,
+              },
+              { new: true, runValidators: true },
+            )
             .session(session);
-          await this.managerModel
+          /*await this.managerModel
             .findByIdAndUpdate(worker.manager, {
-              $addToSet: { team: updatedWorker._id },
+              $addToSet: { team: (user as Document)._id },
             })
-            .session(session);
+            .session(session); */
           break;
         default:
           throw new ForbiddenException(`Invalid role.`);
       }
 
       await session.commitTransaction();
-      return { message: 'User updated successfully' };
+      return { message: 'User updated successfully', data: user };
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -185,7 +195,74 @@ export class UsersService {
       await this.utilityService.sendEmail({
         to: user.email,
         subject: 'Email Verification',
-        text: `Your Verification Code is ${verificationCode}`,
+        text: `Your Verification Code is ${verificationCode}`, // This is still useful for text-only clients
+        html: `
+          <html>
+            <head>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  background-color: #f4f7fc;
+                  margin: 0;
+                  padding: 0;
+                  color: #333;
+                }
+                .container {
+                  width: 100%;
+                  max-width: 600px;
+                  margin: 20px auto;
+                  background-color: #ffffff;
+                  padding: 20px;
+                  border-radius: 8px;
+                  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                }
+                .header {
+                  text-align: center;
+                  padding-bottom: 20px;
+                  border-bottom: 2px solid #eee;
+                }
+                .content {
+                  padding: 20px 0;
+                  text-align: center;
+                }
+                .verification-code {
+                  display: inline-block;
+                  font-size: 24px;
+                  font-weight: bold;
+                  color: #4CAF50;
+                  background-color: #f0f9f4;
+                  padding: 10px 20px;
+                  border-radius: 5px;
+                }
+                .footer {
+                  text-align: center;
+                  font-size: 12px;
+                  color: #777;
+                  margin-top: 30px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h2>Email Verification</h2>
+                </div>
+                <div class="content">
+                  <p>Hello,</p>
+                  <p>We received a request to verify your email address. Please use the verification code below to complete the process:</p>
+                  <div class="verification-code">
+                    ${verificationCode}
+                  </div>
+                  <p>If you did not request this verification, you can ignore this email.</p>
+                </div>
+                <div class="footer">
+                  <p>Thank you for using our service!</p>
+                  <p>Best regards, The [Your Service Name] Team</p>
+                </div>
+              </div>
+            </body>
+          </html>
+        `,
       });
       return {
         message: 'Verification code generated successfully',
@@ -213,12 +290,27 @@ export class UsersService {
         const salt = await bcrypt.genSalt();
         await this.userModel.findByIdAndUpdate(user.id, {
           password: await bcrypt.hash(data.newPassword, salt),
-          $unset:{verificationCode:"" , verificationExpiration:""}
+          $unset: { verificationCode: '', verificationExpiration: '' },
         });
         return { message: 'Password updated successfully' };
       }
     } catch (error) {
       throw error;
     }
+  }
+
+  async checkCollaborators(
+    collaborators: string[],
+    manager: Schema.Types.ObjectId,
+    session: ClientSession,
+  ) {
+    const collaboratorIds = collaborators.map(
+      (id) => new mongoose.Types.ObjectId(id),
+    );
+    const check = await this.workerModel
+      .find({ _id: { $in: collaboratorIds }, manager: manager })
+      .session(session);
+    console.log(check);
+    return check;
   }
 }

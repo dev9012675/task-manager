@@ -14,6 +14,9 @@ import { UsersService } from 'src/users/users.service';
 import { Role } from 'src/users/enums/users.enums';
 import { RoomsService } from 'src/rooms/rooms.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { TaskSearchDTO } from './dtos/task-search-dto';
+import { Types } from 'mongoose';
+import { status } from './enums/tasks.enums';
 
 @Injectable()
 export class TasksService {
@@ -24,21 +27,67 @@ export class TasksService {
     private notificationService: NotificationsService,
   ) {}
 
-  async findAll() {
+  async findAll(searchDTO: TaskSearchDTO, user: Payload) {
     try {
-      return await this.taskModel.find();
+      console.log(searchDTO.dueDate);
+      const textFilter = searchDTO.search
+        ? { $text: { $search: searchDTO.search } }
+        : {};
+      const priorityFilter = searchDTO.priority
+        ? { priority: searchDTO.priority }
+        : {};
+      const statusFilter = searchDTO.status ? { status: searchDTO.status } : {};
+      const dateFilter = searchDTO.dueDate
+        ? {
+            dueDate: {
+              $gte: new Date(searchDTO.dueDate.setHours(0, 0, 0, 0)),
+              $lte: new Date(searchDTO.dueDate.setHours(23, 59, 59, 999)),
+            },
+          }
+        : {};
+      const limit = searchDTO.limit ? searchDTO.limit : 5;
+      const skip = searchDTO.page ? (searchDTO.page - 1) * limit : 0;
+      const query = {
+        ...textFilter,
+        ...priorityFilter,
+        ...statusFilter,
+        ...dateFilter,
+        ...(user.role === Role.Manager && {
+          manager: new Types.ObjectId(user.userId),
+        }),
+        ...(user.role === Role.Worker && {
+          worker: new Types.ObjectId(user.userId),
+        }),
+      };
+
+      return await this.taskModel.aggregate([
+        {
+          $match: query,
+        },
+
+        {
+          $facet: {
+            tasks: [{ $skip: skip }, { $limit: limit }],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ]);
     } catch (err) {
       throw err;
     }
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: Payload) {
     try {
-      const task = await this.taskModel.findById(id);
-      if (!task) {
-        throw new NotFoundException('Task not found.');
-      }
-      return task;
+      return await this.taskModel.findOne({
+        _id: new Types.ObjectId(id),
+        ...(user.role === Role.Manager && {
+          manager: new Types.ObjectId(user.userId),
+        }),
+        ...(user.role === Role.Worker && {
+          worker: new Types.ObjectId(user.userId),
+        }),
+      });
     } catch (err) {
       throw err;
     }
@@ -77,27 +126,24 @@ export class TasksService {
     const session = await this.taskModel.db.startSession();
     session.startTransaction();
     try {
-      const task = await this.taskModel.findById(id).session(session);
-      const currentUser = await this.usersService.findById(
-        user.userId,
-        session,
-      );
+      const task = await this.taskModel
+        .findOne({
+          _id: new Types.ObjectId(id),
+          ...(user.role === Role.Manager && {
+            manager: new Types.ObjectId(user.userId),
+          }),
+          ...(user.role === Role.Worker && {
+            worker: new Types.ObjectId(user.userId),
+          }),
+        })
+        .session(session);
 
       if (!task) {
         throw new NotFoundException('Task not found.');
       }
 
-      const notificationDescription = `Task ${task.title} Has been updated`;
-
-      if (
-        !(
-          currentUser.id === task.worker.toString() ||
-          currentUser.id === task.manager.toString()
-        )
-      ) {
-        throw new ForbiddenException(
-          `Tasks may be modified only by their manager or worker.`,
-        );
+      if (task.status === status.COMPLETED) {
+        throw new BadRequestException(`Cannot update completed task`);
       }
 
       if (typeof data.worker !== `undefined`) {
@@ -107,22 +153,72 @@ export class TasksService {
         );
         if (!worker) {
           throw new BadRequestException(`Worker not found`);
-        } else if (worker.role !== Role.Worker) {
-          throw new ForbiddenException(`Tasks can only be assigned to workers`);
         } else if (worker.manager.toString() !== user.userId) {
           throw new ForbiddenException(
             `Cannot assign tasks to workers outside your team.`,
           );
         }
       }
+      if (typeof data.collaborators !== `undefined`) {
+        if (
+          data.collaborators.includes(task.manager.toString()) ||
+          (typeof data.worker === `undefined` &&
+            data.collaborators.includes(task.worker.toString())) ||
+          (typeof data.worker !== `undefined` &&
+            data.collaborators.includes(data.worker))
+        ) {
+          throw new BadRequestException(
+            `Task Manager or Worker cannot be assigned as collaborators`,
+          );
+        }
+        const collaboratorCheck = await this.usersService.checkCollaborators(
+          data.collaborators,
+          task.manager,
+          session,
+        );
+        if (
+          collaboratorCheck.length === 0 ||
+          collaboratorCheck.length !== data.collaborators.length
+        ) {
+          throw new BadRequestException(`Invalid collaborators provided.`);
+        }
+        console.log(`Check passed successfully`);
+
+        const updatedRoom = await this.roomsService.update(
+          task._id,
+          [
+            ...data.collaborators,
+            task.manager.toString(),
+            typeof data.worker !== `undefined`
+              ? data.worker
+              : task.worker.toString(),
+          ],
+          session,
+        );
+        if (!updatedRoom) {
+          throw new Error(`There was some error in updating rooms`);
+        }
+      }
       console.log(data);
       const updatedTask = await this.taskModel
         .findByIdAndUpdate(id, data, { new: true })
         .session(session);
-      await this.notificationService.create({
-        description: notificationDescription,
-        to: [updatedTask.worker.toString(), updatedTask.manager.toString()],
-      });
+
+      await this.notificationService.create(
+        {
+          description: await this.notificationService.generateDescription(
+            data,
+            task.title,
+          ),
+          to: [
+            updatedTask.worker.toString(),
+            updatedTask.manager.toString(),
+            ...(typeof updatedTask.collaborators !== `undefined` &&
+              updatedTask.collaborators.map((id) => id.toString())),
+          ],
+        },
+        session,
+      );
 
       await session.commitTransaction();
       return { message: 'Task updated successfully', data: updatedTask };

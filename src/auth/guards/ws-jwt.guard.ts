@@ -10,6 +10,8 @@ export class WsJwtGuard implements CanActivate {
   constructor(private jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    console.log('heloooooooo');
+
     if (context.getType() !== `ws`) {
       return true;
     }

@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   IsDateString,
+  IsArray,
 } from 'class-validator';
 import { priority, status } from '../enums/tasks.enums';
 
@@ -31,4 +32,9 @@ export class UpdateTaskDTO {
   @IsOptional()
   @IsMongoId()
   worker?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsMongoId({ each: true })
+  collaborators?: string[];
 }

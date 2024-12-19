@@ -15,6 +15,7 @@ import { LoginDTO } from './dtos/login.dto';
 import { Response } from 'express';
 import { RefreshAuthGuard } from './guards/refresh.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
+import { ValidateEmailPipe } from './pipes/validate-email.pipe';
 
 @Controller('api/auth')
 export class AuthController {

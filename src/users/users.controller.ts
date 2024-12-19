@@ -15,14 +15,18 @@ import { UsersService } from './users.service';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { Payload } from 'src/auth/types/auth.types';
 import { Response } from 'express';
-import {  UpdateUserDTO } from './dtos/update-user-dto';
+import { UpdateUserDTO } from './dtos/update-user-dto';
 import { UtilityService } from 'src/utility/utility.service';
 import { UpdatePasswordDTO } from './dtos/update-password-dto';
 import { VerifyDTO } from './dtos/verify-dto';
+import { IResponse } from 'src/common/interfaces/response.interface';
 
 @Controller('api/users')
 export class UsersController {
-  constructor(private userService: UsersService , private utilityService:UtilityService) {}
+  constructor(
+    private userService: UsersService,
+    private utilityService: UtilityService,
+  ) {}
 
   @Get(`:id`)
   @UseGuards(JwtAuthGuard)
@@ -67,11 +71,10 @@ export class UsersController {
     newData: UpdateUserDTO,
     @CurrentUser() userData: Payload,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<IResponse> {
     return await this.userService.update(newData, userData);
   }
 
-  
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -80,8 +83,8 @@ export class UsersController {
     }),
   )
   @Post(`verify-email`)
-  async verifyEmail(@Body() data:VerifyDTO){
-         return await this.userService.verifyEmail(data)
+  async verifyEmail(@Body() data: VerifyDTO) {
+    return await this.userService.verifyEmail(data);
   }
 
   @UsePipes(
@@ -93,6 +96,6 @@ export class UsersController {
   )
   @Patch(`password`)
   async updatePassword(@Body() data: UpdatePasswordDTO) {
-     return await this.userService.updatePassword(data)
+    return await this.userService.updatePassword(data);
   }
 }

@@ -31,16 +31,16 @@ export class User {
   @Prop({ required: true })
   lastName: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   email: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   password: string;
 
   @Prop({ type: String, required: true, enum: Gender })
   gender: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   phone: string;
 
   @Prop({ type: String, required: true, enum: Role, default: Role.Worker })
@@ -57,3 +57,33 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index(
+  {
+    email: 1,
+    userType: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
+UserSchema.index(
+  {
+    phone: 1,
+    userType: 1,
+  },
+  {
+    unique: true,
+  },
+);
+
+UserSchema.index(
+  {
+    password: 1,
+    userType: 1,
+  },
+  {
+    unique: true,
+  },
+);

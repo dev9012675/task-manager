@@ -8,10 +8,8 @@ export class UtilityService {
 
   async sendEmail(data: EmailDTO) {
     this.mailerService.sendMail({
-      from: process.env.SENDER_MAIL,
-      to: data.to,
-      subject: data.subject,
-      text: data.text,
+      from: `${process.env.SENDER_NAME} ${process.env.SENDER_MAIL}`,
+      ...data,
     });
   }
 }

@@ -4,6 +4,7 @@ import { ClientSession, Model } from 'mongoose';
 import { Notification } from './notification.schema';
 import { CreateNotificationDTO } from './dtos/create-notification-dto';
 import { ChatGateway } from 'src/chat/chat.gateway';
+import { UpdateTaskDTO } from 'src/tasks/dtos/update-task-dto';
 
 @Injectable()
 export class NotificationsService {
@@ -21,12 +22,22 @@ export class NotificationsService {
     return await this.notificationModel.findById(id);
   }
 
-  async create(data: CreateNotificationDTO) {
-    const notification = await this.notificationModel.create(data);
+  async create(data: CreateNotificationDTO, session: ClientSession) {
+    console.log(data);
+    const notificationData = new this.notificationModel(data);
+    const notification = await notificationData.save({ session });
     if (!notification) {
       throw new Error(`Notification could not be created`);
     }
     await this.chatGateway.sendNotification(notification);
+  }
+
+  async generateDescription(task: UpdateTaskDTO, taskTitle: string) {
+    const titleString = `Task ${taskTitle} has been updated.The `;
+    return titleString.concat(
+      Object.keys(task).join(' , '),
+      ' have been updated',
+    );
   }
 
   async consume(

@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class EmailDTO {
   @IsNotEmpty()
@@ -13,4 +13,8 @@ export class EmailDTO {
   @IsNotEmpty()
   @IsString()
   text: string;
+
+  @IsOptional()
+  @IsString()
+  html?: string;
 }

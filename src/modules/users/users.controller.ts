@@ -9,6 +9,7 @@ import {
   ValidationPipe,
   Body,
   Post,
+  Delete,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { UsersService } from './users.service';
@@ -16,7 +17,7 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Payload } from 'src/modules/auth/types/auth.types';
 import { Response } from 'express';
 import { UpdateUserDTO } from './dtos/update-user-dto';
-import { UtilityService } from 'src/modules/utility/utility.service';
+import { MailService } from 'src/modules/mail/mail.service';
 import { UpdatePasswordDTO } from './dtos/update-password-dto';
 import { VerifyDTO } from './dtos/verify-dto';
 import { IResponse } from 'src/common/interfaces/response.interface';
@@ -25,7 +26,7 @@ import { IResponse } from 'src/common/interfaces/response.interface';
 export class UsersController {
   constructor(
     private userService: UsersService,
-    private utilityService: UtilityService,
+    private mailService: MailService,
   ) {}
 
   @Get(`:id`)
@@ -97,5 +98,11 @@ export class UsersController {
   @Patch(`password`)
   async updatePassword(@Body() data: UpdatePasswordDTO) {
     return await this.userService.updatePassword(data);
+  }
+
+  @Delete()
+  @UseGuards(JwtAuthGuard)
+  async delete(@CurrentUser() user: Payload) {
+    return this.userService.delete(user);
   }
 }

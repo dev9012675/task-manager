@@ -22,6 +22,9 @@ export class Room {
     },
   ])
   members: mongoose.Schema.Types.ObjectId[];
+
+  @Prop({ type: Boolean, default: true, required: true })
+  isActive: boolean;
 }
 
 export const RoomSchema = SchemaFactory.createForClass(Room);

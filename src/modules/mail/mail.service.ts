@@ -3,7 +3,7 @@ import { EmailDTO } from './dtos/email-dto';
 import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
-export class UtilityService {
+export class MailService {
   constructor(private mailerService: MailerService) {}
 
   async sendEmail(data: EmailDTO) {

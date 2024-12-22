@@ -12,7 +12,7 @@ import { MessagesModule } from './modules/messages/messages.module';
 import { RoomsController } from './modules/rooms/rooms.controller';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { UtilityModule } from './modules/utility/utility.module';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -32,7 +32,7 @@ import { UtilityModule } from './modules/utility/utility.module';
     MessagesModule,
     RoomsModule,
     NotificationsModule,
-    UtilityModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

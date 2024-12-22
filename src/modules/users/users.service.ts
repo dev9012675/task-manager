@@ -4,6 +4,8 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './user.schema';
@@ -19,16 +21,21 @@ import { UpdatePasswordDTO } from './dtos/update-password-dto';
 import { Payload } from 'src/modules/auth/types/auth.types';
 import { Role } from './enums/users.enums';
 import { VerifyDTO } from './dtos/verify-dto';
-import { UtilityService } from 'src/modules/utility/utility.service';
+import { MailService } from 'src/modules/mail/mail.service';
 import { Document } from 'mongoose';
+import { RoomsService } from '../rooms/rooms.service';
+import { TasksService } from '../tasks/tasks.service';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(User.name) private userModel: Model<User>,
-    @InjectModel(Manager.name) private managerModel: Model<Manager>,
-    @InjectModel(Worker.name) private workerModel: Model<Worker>,
-    private utilityService: UtilityService,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Manager.name) private readonly managerModel: Model<Manager>,
+    @InjectModel(Worker.name) private readonly workerModel: Model<Worker>,
+    private readonly mailService: MailService,
+    private readonly roomService: RoomsService,
+    @Inject(forwardRef(() => TasksService))
+    private readonly tasksService: TasksService,
   ) {}
 
   async create(user: CreateUserDTO) {
@@ -192,7 +199,7 @@ export class UsersService {
         verificationCode: verificationCode,
         verificationExpiration: verificationExpiration,
       });
-      await this.utilityService.sendEmail({
+      await this.mailService.sendEmail({
         to: user.email,
         subject: 'Email Verification',
         text: `Your Verification Code is ${verificationCode}`, // This is still useful for text-only clients
@@ -312,5 +319,43 @@ export class UsersService {
       .session(session);
     console.log(check);
     return check;
+  }
+
+  async delete(user: Payload) {
+    const session = await this.userModel.startSession();
+    session.startTransaction();
+    try {
+      const deletedUser = await this.userModel
+        .findByIdAndDelete(user.userId)
+        .session(session);
+      if (!deletedUser) {
+        throw new BadRequestException(`User not found`);
+      }
+      await this.roomService.removeUser(user.userId, session);
+      await this.tasksService.removeUser(user, session);
+      if (deletedUser.role === Role.Manager) {
+        await this.workerModel
+          .updateMany({ manager: deletedUser._id }, { manager: null })
+          .session(session);
+      } else if (deletedUser.role === Role.Worker) {
+        await this.managerModel
+          .updateMany(
+            { team: deletedUser._id },
+            { $pull: { team: deletedUser._id } },
+          )
+          .session(session);
+      }
+
+      await session.commitTransaction();
+      return {
+        message: `User deleted successfully`,
+        data: user,
+      };
+    } catch (e) {
+      await session.abortTransaction();
+      throw e;
+    } finally {
+      await session.endSession();
+    }
   }
 }

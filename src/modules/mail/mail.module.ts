@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { UtilityService } from './utility.service';
+import { MailService } from './mail.service';
 import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
@@ -16,7 +16,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
       },
     }),
   ],
-  providers: [UtilityService],
-  exports: [UtilityService],
+  providers: [MailService],
+  exports: [MailService],
 })
-export class UtilityModule {}
+export class MailModule {}

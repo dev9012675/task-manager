@@ -1,99 +1,44 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Task Manager
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+**Description**: -
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+`                        `The Task-Manager is an all-inclusive platform made to make it easier for managers and employees to communicate, assign tasks, and track progress. By emphasizing user roles, usability, and effective task management, this system guarantees that teams can work together productively and remain on top of their duties.
 
-## Description
+**Features:** -
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**Registration and User Management**:
 
-## Project setup
+- **Manager Users**: Managers have the ability to create, update, delete, and assign tasks to workers.
+- **Worker Users**: Workers can view the tasks assigned to them, update their task status (e.g., Not Started, In Progress, Completed).
 
-```bash
-$ npm install
-```
+**Login and Role-Based Access Control**:
 
-## Compile and run the project
+- Users must log in using secure credentials.
+- Role-based access control is enforced by the system, guaranteeing that only authorized users can access particular routes or features. While workers can only view and change the tasks they have been assigned, managers have complete control over task and user management.
 
-```bash
-# development
-$ npm run start
+**Task Management**:
 
-# watch mode
-$ npm run start:dev
+- Managers can create tasks with essential details such as title, description, priority, due date, and task status.
+- Tasks can be updated by users to reflect changes in priority or due date.
+- Workers can filter and view tasks based on **priority** and **due date**, helping them to prioritize their work effectively.
 
-# production mode
-$ npm run start:prod
-```
+**Task-Based Chat**:
 
-## Run tests
+- Integrated **task-based chat** allows both managers and workers to communicate directly about specific tasks. This feature enhances collaboration, resolves misunderstandings, and ensures clarity in task expectations.
 
-```bash
-# unit tests
-$ npm run test
+**Notifications**:
 
-# e2e tests
-$ npm run test:e2e
+- When a task is updated, the system automatically sends notifications to the relevant workers and managers. This helps make sure that both parties remain up to date about their tasks.
 
-# test coverage
-$ npm run test:cov
-```
+**Payment**:
 
-## Deployment
+- After a trial period, users have to make a one-time payment. This helps the user get a feel for the system and check if they like it or not.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+##
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+**Workflow:**
 
-```bash
-$ npm install -g mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+1. **Manager Registration**: - The manager registers in the system to create and assign tasks.
+1. **Worker Registration**: - The workers also register in the system so that they can perform and update the status of tasks.
+1. **Task Management :-** The workers and managers manage and co-ordinate their tasks.
+1. **Payment: -** After the trial period ends, the users are asked to pay a one time fee.

@@ -1,12 +1,14 @@
 import {
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Task } from './task.schema';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import { CreateTaskDTO } from './dtos/create-task-dto';
 import { UpdateTaskDTO } from './dtos/update-task-dto';
 import { Payload } from 'src/modules/auth/types/auth.types';
@@ -21,105 +23,91 @@ import { status } from './enums/tasks.enums';
 @Injectable()
 export class TasksService {
   constructor(
-    @InjectModel(Task.name) private taskModel: Model<Task>,
-    private usersService: UsersService,
-    private roomsService: RoomsService,
-    private notificationService: NotificationsService,
+    @InjectModel(Task.name) private readonly taskModel: Model<Task>,
+    @Inject(forwardRef(() => UsersService))
+    private readonly usersService: UsersService,
+    private readonly roomsService: RoomsService,
+    private readonly notificationService: NotificationsService,
   ) {}
 
   async findAll(searchDTO: TaskSearchDTO, user: Payload) {
-    try {
-      console.log(searchDTO.dueDate);
-      const textFilter = searchDTO.search
-        ? { $text: { $search: searchDTO.search } }
-        : {};
-      const priorityFilter = searchDTO.priority
-        ? { priority: searchDTO.priority }
-        : {};
-      const statusFilter = searchDTO.status ? { status: searchDTO.status } : {};
-      const dateFilter = searchDTO.dueDate
-        ? {
-            dueDate: {
-              $gte: new Date(searchDTO.dueDate.setHours(0, 0, 0, 0)),
-              $lte: new Date(searchDTO.dueDate.setHours(23, 59, 59, 999)),
-            },
-          }
-        : {};
-      const limit = searchDTO.limit ? searchDTO.limit : 5;
-      const skip = searchDTO.page ? (searchDTO.page - 1) * limit : 0;
-      const query = {
-        ...textFilter,
-        ...priorityFilter,
-        ...statusFilter,
-        ...dateFilter,
-        ...(user.role === Role.Manager && {
-          manager: new Types.ObjectId(user.userId),
-        }),
-        ...(user.role === Role.Worker && {
-          worker: new Types.ObjectId(user.userId),
-        }),
-      };
-
-      return await this.taskModel.aggregate([
-        {
-          $match: query,
-        },
-
-        {
-          $facet: {
-            tasks: [{ $skip: skip }, { $limit: limit }],
-            totalCount: [{ $count: 'count' }],
+    console.log(searchDTO.dueDate);
+    const textFilter = searchDTO.search
+      ? { $text: { $search: searchDTO.search } }
+      : {};
+    const priorityFilter = searchDTO.priority
+      ? { priority: searchDTO.priority }
+      : {};
+    const statusFilter = searchDTO.status ? { status: searchDTO.status } : {};
+    const dateFilter = searchDTO.dueDate
+      ? {
+          dueDate: {
+            $gte: new Date(searchDTO.dueDate.setHours(0, 0, 0, 0)),
+            $lte: new Date(searchDTO.dueDate.setHours(23, 59, 59, 999)),
           },
+        }
+      : {};
+    const limit = searchDTO.limit ? searchDTO.limit : 5;
+    const skip = searchDTO.page ? (searchDTO.page - 1) * limit : 0;
+    const query = {
+      ...textFilter,
+      ...priorityFilter,
+      ...statusFilter,
+      ...dateFilter,
+      ...(user.role === Role.Manager && {
+        manager: new Types.ObjectId(user.userId),
+      }),
+      ...(user.role === Role.Worker && {
+        worker: new Types.ObjectId(user.userId),
+      }),
+    };
+
+    return await this.taskModel.aggregate([
+      {
+        $match: query,
+      },
+
+      {
+        $facet: {
+          tasks: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: 'count' }],
         },
-      ]);
-    } catch (err) {
-      throw err;
-    }
+      },
+    ]);
   }
 
   async findOne(id: string, user: Payload) {
-    try {
-      return await this.taskModel.findOne({
-        _id: new Types.ObjectId(id),
-        ...(user.role === Role.Manager && {
-          manager: new Types.ObjectId(user.userId),
-        }),
-        ...(user.role === Role.Worker && {
-          worker: new Types.ObjectId(user.userId),
-        }),
-      });
-    } catch (err) {
-      throw err;
-    }
+    return await this.taskModel.findOne({
+      _id: new Types.ObjectId(id),
+      ...(user.role === Role.Manager && {
+        manager: new Types.ObjectId(user.userId),
+      }),
+      ...(user.role === Role.Worker && {
+        worker: new Types.ObjectId(user.userId),
+      }),
+    });
   }
 
   async create(task: CreateTaskDTO, user: Payload) {
-    try {
-      const worker = await this.usersService.findWorkerById(task.worker);
-      if (!worker) {
-        throw new BadRequestException(`Worker not found`);
-      } else if (worker.role !== Role.Worker) {
-        throw new ForbiddenException(`Tasks can only be assigned to workers`);
-      } else if (worker.manager.toString() !== user.userId) {
-        throw new ForbiddenException(
-          `Cannot assign tasks to workers outside your team.`,
-        );
-      }
-      const createdTask = await this.taskModel.create({
-        ...task,
-        manager: user.userId,
-      });
-      await this.roomsService.create({
-        task: createdTask.id,
-        members: [
-          createdTask.manager.toString(),
-          createdTask.worker.toString(),
-        ],
-      });
-      return { message: 'Task created successfully' };
-    } catch (err) {
-      throw err;
+    const worker = await this.usersService.findWorkerById(task.worker);
+    if (!worker) {
+      throw new BadRequestException(`Worker not found`);
+    } else if (worker.role !== Role.Worker) {
+      throw new ForbiddenException(`Tasks can only be assigned to workers`);
+    } else if (worker.manager.toString() !== user.userId) {
+      throw new ForbiddenException(
+        `Cannot assign tasks to workers outside your team.`,
+      );
     }
+    const createdTask = await this.taskModel.create({
+      ...task,
+      manager: user.userId,
+    });
+    await this.roomsService.create({
+      task: createdTask.id,
+      members: [createdTask.manager.toString(), createdTask.worker.toString()],
+    });
+    return { message: 'Task created successfully', data: createdTask };
   }
 
   async update(id: string, data: UpdateTaskDTO, user: Payload) {
@@ -144,6 +132,16 @@ export class TasksService {
 
       if (task.status === status.COMPLETED) {
         throw new BadRequestException(`Cannot update completed task`);
+      }
+
+      if (
+        typeof data.status !== `undefined` &&
+        data.status === status.NEW &&
+        task.status === status.IN_PROGRESS
+      ) {
+        throw new BadRequestException(
+          `Cannot change task status from IN_PROGRESS TO NEW`,
+        );
       }
 
       if (typeof data.worker !== `undefined`) {
@@ -186,13 +184,15 @@ export class TasksService {
 
         const updatedRoom = await this.roomsService.update(
           task._id,
-          [
-            ...data.collaborators,
-            task.manager.toString(),
-            typeof data.worker !== `undefined`
-              ? data.worker
-              : task.worker.toString(),
-          ],
+          {
+            members: [
+              ...data.collaborators,
+              task.manager.toString(),
+              typeof data.worker !== `undefined`
+                ? data.worker
+                : task.worker.toString(),
+            ],
+          },
           session,
         );
         if (!updatedRoom) {
@@ -203,6 +203,14 @@ export class TasksService {
       const updatedTask = await this.taskModel
         .findByIdAndUpdate(id, data, { new: true })
         .session(session);
+
+      if (updatedTask.status === status.COMPLETED) {
+        await this.roomsService.update(
+          updatedTask._id,
+          { isActive: false },
+          session,
+        );
+      }
 
       await this.notificationService.create(
         {
@@ -231,16 +239,47 @@ export class TasksService {
   }
 
   async delete(id: string) {
+    const session = await this.taskModel.db.startSession();
+    session.startTransaction();
     try {
-      const task = await this.taskModel.findByIdAndDelete(id);
+      const task = await this.taskModel.findByIdAndDelete(id).session(session);
+
       if (!task) {
         throw new NotFoundException('Task not found.');
       }
+      await this.roomsService.remove(task._id, session);
+      await session.commitTransaction();
       return {
         message: 'Task deleted successfully',
+        data: task,
       };
     } catch (err) {
+      await session.abortTransaction();
       throw err;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async removeUser(user: Payload, session: ClientSession) {
+    if (user.role === Role.Manager) {
+      await this.taskModel
+        .updateMany({ manager: user.userId }, { manager: null })
+        .session(session);
+      return;
+    } else if (user.role === Role.Worker) {
+      await this.taskModel
+        .updateMany(
+          { collaborators: user.userId },
+          { $pull: { collaborators: user.userId } },
+        )
+        .session(session);
+
+      await this.taskModel
+        .updateMany({ worker: user.userId }, { worker: null })
+        .session(session);
+
+      return;
     }
   }
 }

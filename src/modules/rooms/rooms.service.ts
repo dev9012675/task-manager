@@ -3,8 +3,9 @@ import { Room } from './room.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import { RoomSearchDTO } from './dtos/room-search-dto';
-import { CreateRoomDTO } from './dtos/room-dto';
+import { CreateRoomDTO } from './dtos/create-room-dto';
 import { ClientSession } from 'mongoose';
+import { UpdateRoomDTO } from './dtos/update-room-dto';
 
 @Injectable()
 export class RoomsService {
@@ -26,11 +27,21 @@ export class RoomsService {
 
   async update(
     taskId: mongoose.Types.ObjectId,
-    members: string[],
+    data: UpdateRoomDTO,
     session: ClientSession,
   ) {
     return await this.roomModel
-      .findOneAndUpdate({ task: taskId }, { members: members })
+      .findOneAndUpdate({ task: taskId }, { ...data })
+      .session(session);
+  }
+
+  async remove(taskId: mongoose.Types.ObjectId, session: ClientSession) {
+    await this.roomModel.deleteOne({ task: taskId }).session(session);
+  }
+
+  async removeUser(userId: string, session: ClientSession) {
+    await this.roomModel
+      .updateMany({ members: userId }, { $pull: { members: userId } })
       .session(session);
   }
 }

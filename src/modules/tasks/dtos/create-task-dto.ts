@@ -21,10 +21,6 @@ export class CreateTaskDTO {
   @IsNotEmpty()
   priority: priority;
 
-  @IsEnum(status)
-  @IsOptional()
-  status?: status;
-
   @IsNotEmpty()
   @IsDateString()
   dueDate: Date;

@@ -25,6 +25,7 @@ import { Role } from 'src/modules/users/enums/users.enums';
 import { TaskSearchDTO } from './dtos/task-search-dto';
 import { Response } from 'express';
 import { IResponse } from 'src/common/interfaces/response.interface';
+import { ApiBody, ApiResponse } from '@nestjs/swagger';
 
 @Controller('api/tasks')
 export class TasksController {
@@ -88,7 +89,10 @@ export class TasksController {
   @Post()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(`manager`)
-  async create(@Body() task: CreateTaskDTO, @CurrentUser() user: Payload) {
+  async create(
+    @Body() task: CreateTaskDTO,
+    @CurrentUser() user: Payload,
+  ): Promise<IResponse> {
     return await this.taskService.create(task, user);
   }
 

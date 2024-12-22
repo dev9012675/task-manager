@@ -1,5 +1,4 @@
 import { IsArray, IsMongoId, IsNotEmpty } from 'class-validator';
-import { Schema } from 'mongoose';
 
 export class CreateRoomDTO {
   @IsNotEmpty()

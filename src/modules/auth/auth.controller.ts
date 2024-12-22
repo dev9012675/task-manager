@@ -15,7 +15,7 @@ import { LoginDTO } from './dtos/login.dto';
 import { Response } from 'express';
 import { RefreshAuthGuard } from './guards/refresh.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
-import { ValidateEmailPipe } from './pipes/validate-email.pipe';
+import { IResponse } from 'src/common/interfaces/response.interface';
 
 @Controller('api/auth')
 export class AuthController {
@@ -32,7 +32,7 @@ export class AuthController {
     }),
   )
   @Post(`signup`)
-  signup(@Body() userDTO: CreateUserDTO) {
+  async signup(@Body() userDTO: CreateUserDTO): Promise<IResponse> {
     return this.userService.create(userDTO);
   }
 
@@ -47,7 +47,7 @@ export class AuthController {
   async login(
     @Body() loginDto: LoginDTO,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<IResponse> {
     const userData = await this.authService.login(loginDto);
     const Options = {
       httpOnly: true,
@@ -55,7 +55,10 @@ export class AuthController {
     };
     response.cookie('accessToken', userData.accessToken, Options);
     response.cookie('refreshToken', userData.refreshToken, Options);
-    return userData;
+    return {
+      message: 'Logged in Successfully',
+      data: userData,
+    };
   }
 
   @UseGuards(RefreshAuthGuard)
@@ -63,7 +66,7 @@ export class AuthController {
   async refreshToken(
     @Req() req,
     @Res({ passthrough: true }) response: Response,
-  ) {
+  ): Promise<IResponse> {
     const tokens = await this.authService.refreshToken(req.user.userId);
     const Options = {
       httpOnly: true,
@@ -71,7 +74,10 @@ export class AuthController {
     };
     response.cookie('accessToken', tokens.accessToken, Options);
     response.cookie('refreshToken', tokens.refreshToken, Options);
-    return tokens;
+    return {
+      message: 'Tokens refreshed successfully',
+      data: tokens,
+    };
   }
 
   @Post(`signout`)
@@ -87,6 +93,8 @@ export class AuthController {
       response.clearCookie('refreshToken', Options);
     }
 
-    return signOut;
+    return {
+      message: 'Signed out successfully',
+    };
   }
 }

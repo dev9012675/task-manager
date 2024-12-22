@@ -35,27 +35,31 @@ export class UsersController {
     @Param(`id`) id: string,
     @CurrentUser() userData: Payload,
     @Res({ passthrough: true }) res: Response,
-  ) {
-    try {
-      const user = await this.userService.findById(userData.userId);
-      if (!user) {
-        res.status(204);
-        return;
-      }
-      return user;
-    } catch (err) {
-      throw err;
+  ): Promise<IResponse> {
+    const user = await this.userService.findById(userData.userId);
+    if (!user) {
+      res.status(204);
+      return;
     }
+    return {
+      message: 'Profile data fetched successfully',
+      data: user,
+    };
   }
 
   @Get()
-  async findMultiple(@Res({ passthrough: true }) res: Response) {
+  async findMultiple(
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<IResponse> {
     const users = await this.userService.findMultiple();
     if (users.length === 0) {
       res.status(204);
       return;
     }
-    return users;
+    return {
+      message: 'Users fetched successfully',
+      data: users,
+    };
   }
 
   @UsePipes(
@@ -71,7 +75,6 @@ export class UsersController {
     @Body()
     newData: UpdateUserDTO,
     @CurrentUser() userData: Payload,
-    @Res({ passthrough: true }) res: Response,
   ): Promise<IResponse> {
     return await this.userService.update(newData, userData);
   }
@@ -84,7 +87,7 @@ export class UsersController {
     }),
   )
   @Post(`verify-email`)
-  async verifyEmail(@Body() data: VerifyDTO) {
+  async verifyEmail(@Body() data: VerifyDTO): Promise<IResponse> {
     return await this.userService.verifyEmail(data);
   }
 
@@ -96,13 +99,13 @@ export class UsersController {
     }),
   )
   @Patch(`password`)
-  async updatePassword(@Body() data: UpdatePasswordDTO) {
+  async updatePassword(@Body() data: UpdatePasswordDTO): Promise<IResponse> {
     return await this.userService.updatePassword(data);
   }
 
   @Delete()
   @UseGuards(JwtAuthGuard)
-  async delete(@CurrentUser() user: Payload) {
+  async delete(@CurrentUser() user: Payload): Promise<IResponse> {
     return this.userService.delete(user);
   }
 }

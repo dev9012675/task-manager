@@ -4,7 +4,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import jwtConfig from 'src/common/config/jwt.config';
 import { RoomsModule } from 'src/modules/rooms/rooms.module';
-import { NotificationsModule } from 'src/modules/notifications/notifications.module';
 
 @Module({
   imports: [

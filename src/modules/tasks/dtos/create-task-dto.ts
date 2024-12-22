@@ -2,11 +2,10 @@ import {
   IsString,
   IsNotEmpty,
   IsEnum,
-  IsOptional,
   IsDateString,
   IsMongoId,
 } from 'class-validator';
-import { priority, status } from '../enums/tasks.enums';
+import { priority } from '../enums/tasks.enums';
 
 export class CreateTaskDTO {
   @IsString()

@@ -2,7 +2,7 @@
 
 **Description**: -
 
-`                        `The Task-Manager is an all-inclusive platform made to make it easier for managers and employees to communicate, assign tasks, and track progress. By emphasizing user roles, usability, and effective task management, this system guarantees that teams can work together productively and remain on top of their duties.
+The Task-Manager is an all-inclusive platform made to make it easier for managers and employees to communicate, assign tasks, and track progress. By emphasizing user roles, usability, and effective task management, this system guarantees that teams can work together productively and remain on top of their duties.
 
 **Features:** -
 

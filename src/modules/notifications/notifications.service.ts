@@ -25,7 +25,7 @@ export class NotificationsService {
   async create(data: CreateNotificationDTO, session: ClientSession) {
     console.log(data);
     const notificationData = new this.notificationModel(data);
-    const notification = await notificationData.save({ session });
+    const notification = await notificationData.save({ session: session });
     if (!notification) {
       throw new Error(`Notification could not be created`);
     }

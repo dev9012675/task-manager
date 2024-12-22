@@ -9,7 +9,6 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ManagersModule } from './modules/managers/managers.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MessagesModule } from './modules/messages/messages.module';
-import { RoomsController } from './modules/rooms/rooms.controller';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MailModule } from './modules/mail/mail.module';

@@ -25,7 +25,6 @@ import { Role } from 'src/modules/users/enums/users.enums';
 import { TaskSearchDTO } from './dtos/task-search-dto';
 import { Response } from 'express';
 import { IResponse } from 'src/common/interfaces/response.interface';
-import { ApiBody, ApiResponse } from '@nestjs/swagger';
 
 @Controller('api/tasks')
 export class TasksController {
@@ -110,28 +109,24 @@ export class TasksController {
     @Body() task: UpdateTaskDTO,
     @CurrentUser() user: Payload,
   ): Promise<IResponse> {
-    try {
-      switch (user.role) {
-        case Role.Manager:
-          return this.taskService.update(id, task, user);
+    switch (user.role) {
+      case Role.Manager:
+        return this.taskService.update(id, task, user);
 
-        case Role.Worker:
-          return task.status
-            ? this.taskService.update(id, { status: task.status }, user)
-            : { message: 'Workers can only update task status' };
+      case Role.Worker:
+        return task.status
+          ? this.taskService.update(id, { status: task.status }, user)
+          : { message: 'Workers can only update task status' };
 
-        default:
-          throw new ForbiddenException(`Invalid role.`);
-      }
-    } catch (error) {
-      throw error;
+      default:
+        throw new ForbiddenException(`Invalid role.`);
     }
   }
 
   @Delete(`:id`)
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(`manager`)
-  async delete(@Param(`id`) id: string) {
+  async delete(@Param(`id`) id: string): Promise<IResponse> {
     return await this.taskService.delete(id);
   }
 }

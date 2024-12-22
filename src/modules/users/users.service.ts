@@ -39,39 +39,63 @@ export class UsersService {
   ) {}
 
   async create(user: CreateUserDTO) {
-    const userCheck = await this.userModel.findOne({ email: user.email });
-    if (userCheck) {
-      throw new ConflictException(`Email is already in use.`);
-    }
+    const session = await this.userModel.startSession();
+    let createdUser: unknown = null;
+    session.startTransaction();
+    try {
+      const userCheck = await this.userModel
+        .findOne({ email: user.email })
+        .session(session);
+      if (userCheck) {
+        throw new ConflictException(`Email is already in use.`);
+      }
 
-    const salt = await bcrypt.genSalt();
-    switch (user.role) {
-      case Role.Manager:
-        await this.managerModel.create({
-          ...user,
-          password: await bcrypt.hash(user.password, salt),
-        });
-        break;
-      case Role.Worker:
-        const { worker, ...newUser } = user;
-        const managerCheck = await this.userModel.findById(worker.manager);
-        if (!managerCheck || managerCheck.role !== Role.Manager) {
-          throw new ConflictException(`Invalid user provided`);
+      const salt = await bcrypt.genSalt();
+      switch (user.role) {
+        case Role.Manager: {
+          const temp = new this.managerModel({
+            ...user,
+            password: await bcrypt.hash(user.password, salt),
+          });
+          createdUser = await temp.save({ session: session });
+          break;
         }
-        const createdWorker = await this.workerModel.create({
-          ...newUser,
-          password: await bcrypt.hash(user.password, salt),
-          ...worker,
-        });
-        await this.managerModel.findByIdAndUpdate(worker.manager, {
-          $addToSet: { team: createdWorker._id },
-        });
-        break;
-      default:
-        throw new ForbiddenException(`Invalid role.`);
-    }
+        case Role.Worker: {
+          const { worker, ...newUser } = user;
+          const managerCheck = await this.userModel
+            .findById(worker.manager)
+            .session(session);
+          if (!managerCheck || managerCheck.role !== Role.Manager) {
+            throw new ConflictException(`Invalid user provided`);
+          }
+          const tempWorker = new this.workerModel({
+            ...newUser,
+            password: await bcrypt.hash(user.password, salt),
+            ...worker,
+          });
 
-    return { message: 'User created successfully' };
+          createdUser = await tempWorker.save({ session: session });
+          await this.managerModel
+            .findByIdAndUpdate(worker.manager, {
+              $addToSet: { team: (createdUser as Document)._id },
+            })
+            .session(session);
+          break;
+        }
+        default:
+          throw new ForbiddenException(`Invalid role.`);
+      }
+      await session.commitTransaction();
+      return {
+        message: 'User created successfully',
+        data: createdUser,
+      };
+    } catch (e) {
+      await session.abortTransaction();
+      throw e;
+    } finally {
+      await session.endSession();
+    }
   }
 
   async findOne(data: Partial<User>): Promise<User & { _id: Types.ObjectId }> {
@@ -112,11 +136,7 @@ export class UsersService {
     ]);
   }
 
-  async updateHashedRefreshToken(
-    id: string,
-    hashedRefreshToken: string,
-    session?: ClientSession,
-  ) {
+  async updateHashedRefreshToken(id: string, hashedRefreshToken: string) {
     return await this.userModel.findByIdAndUpdate(id, {
       hashedRefreshToken: hashedRefreshToken,
     });
@@ -185,25 +205,22 @@ export class UsersService {
   }
 
   async verifyEmail(data: VerifyDTO) {
-    try {
-      const user = await this.userModel.findOne({ email: data.email });
-      if (!user) {
-        throw new NotFoundException(`User not found`);
-      }
-      const verificationCode = Math.floor(100000 + Math.random() * 900000);
-      const verificationExpiration = new Date();
-      verificationExpiration.setMinutes(
-        verificationExpiration.getMinutes() + 5,
-      );
-      await this.userModel.findByIdAndUpdate(user.id, {
-        verificationCode: verificationCode,
-        verificationExpiration: verificationExpiration,
-      });
-      await this.mailService.sendEmail({
-        to: user.email,
-        subject: 'Email Verification',
-        text: `Your Verification Code is ${verificationCode}`, // This is still useful for text-only clients
-        html: `
+    const user = await this.userModel.findOne({ email: data.email });
+    if (!user) {
+      throw new NotFoundException(`User not found`);
+    }
+    const verificationCode = Math.floor(100000 + Math.random() * 900000);
+    const verificationExpiration = new Date();
+    verificationExpiration.setMinutes(verificationExpiration.getMinutes() + 5);
+    await this.userModel.findByIdAndUpdate(user.id, {
+      verificationCode: verificationCode,
+      verificationExpiration: verificationExpiration,
+    });
+    await this.mailService.sendEmail({
+      to: user.email,
+      subject: 'Email Verification',
+      text: `Your Verification Code is ${verificationCode}`, // This is still useful for text-only clients
+      html: `
           <html>
             <head>
               <style>
@@ -270,39 +287,32 @@ export class UsersService {
             </body>
           </html>
         `,
-      });
-      return {
-        message: 'Verification code generated successfully',
-      };
-    } catch (error) {
-      throw error;
-    }
+    });
+    return {
+      message: 'Verification code generated successfully',
+    };
   }
 
   async updatePassword(data: UpdatePasswordDTO) {
-    try {
-      const user = await this.userModel.findOne({ email: data.email });
-      if (!user) {
-        throw new NotFoundException(`User not found`);
-      } else if (
-        user.verificationCode === null ||
-        user.verificationCode === undefined
-      ) {
-        throw new BadRequestException(`No verification code found`);
-      } else if (user.verificationCode !== data.verificationCode) {
-        throw new BadRequestException(`Invalid Verification Code`);
-      } else if (user.verificationExpiration <= new Date()) {
-        throw new BadRequestException(`Verification code has expired`);
-      } else {
-        const salt = await bcrypt.genSalt();
-        await this.userModel.findByIdAndUpdate(user.id, {
-          password: await bcrypt.hash(data.newPassword, salt),
-          $unset: { verificationCode: '', verificationExpiration: '' },
-        });
-        return { message: 'Password updated successfully' };
-      }
-    } catch (error) {
-      throw error;
+    const user = await this.userModel.findOne({ email: data.email });
+    if (!user) {
+      throw new NotFoundException(`User not found`);
+    } else if (
+      user.verificationCode === null ||
+      user.verificationCode === undefined
+    ) {
+      throw new BadRequestException(`No verification code found`);
+    } else if (user.verificationCode !== data.verificationCode) {
+      throw new BadRequestException(`Invalid Verification Code`);
+    } else if (user.verificationExpiration <= new Date()) {
+      throw new BadRequestException(`Verification code has expired`);
+    } else {
+      const salt = await bcrypt.genSalt();
+      await this.userModel.findByIdAndUpdate(user.id, {
+        password: await bcrypt.hash(data.newPassword, salt),
+        $unset: { verificationCode: '', verificationExpiration: '' },
+      });
+      return { message: 'Password updated successfully' };
     }
   }
 

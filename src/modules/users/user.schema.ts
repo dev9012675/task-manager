@@ -54,36 +54,12 @@ export class User {
 
   @Prop()
   verificationExpiration?: Date;
+
+  @Prop({ default: true })
+  isTrialActive: boolean;
+
+  @Prop()
+  trialExpiration?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-
-UserSchema.index(
-  {
-    email: 1,
-    userType: 1,
-  },
-  {
-    unique: true,
-  },
-);
-
-UserSchema.index(
-  {
-    phone: 1,
-    userType: 1,
-  },
-  {
-    unique: true,
-  },
-);
-
-UserSchema.index(
-  {
-    password: 1,
-    userType: 1,
-  },
-  {
-    unique: true,
-  },
-);

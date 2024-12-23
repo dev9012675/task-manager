@@ -17,17 +17,13 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Payload } from 'src/modules/auth/types/auth.types';
 import { Response } from 'express';
 import { UpdateUserDTO } from './dtos/update-user-dto';
-import { MailService } from 'src/modules/mail/mail.service';
 import { UpdatePasswordDTO } from './dtos/update-password-dto';
 import { VerifyDTO } from './dtos/verify-dto';
 import { IResponse } from 'src/common/interfaces/response.interface';
 
 @Controller('api/users')
 export class UsersController {
-  constructor(
-    private userService: UsersService,
-    private mailService: MailService,
-  ) {}
+  constructor(private userService: UsersService) {}
 
   @Get(`:id`)
   @UseGuards(JwtAuthGuard)
@@ -69,14 +65,15 @@ export class UsersController {
       forbidNonWhitelisted: true,
     }),
   )
-  @Patch()
+  @Patch(`:id`)
   @UseGuards(JwtAuthGuard)
   async updateProfile(
+    @Param(`id`) id: string,
     @Body()
     newData: UpdateUserDTO,
     @CurrentUser() userData: Payload,
   ): Promise<IResponse> {
-    return await this.userService.update(newData, userData);
+    return await this.userService.update(newData, userData.userId);
   }
 
   @UsePipes(
@@ -86,8 +83,11 @@ export class UsersController {
       forbidNonWhitelisted: true,
     }),
   )
-  @Post(`verify-email`)
-  async verifyEmail(@Body() data: VerifyDTO): Promise<IResponse> {
+  @Post(`:id/verify-email`)
+  async verifyEmail(
+    @Body() data: VerifyDTO,
+    @Param(`id`) id: string,
+  ): Promise<IResponse> {
     return await this.userService.verifyEmail(data);
   }
 
@@ -98,14 +98,20 @@ export class UsersController {
       forbidNonWhitelisted: true,
     }),
   )
-  @Patch(`password`)
-  async updatePassword(@Body() data: UpdatePasswordDTO): Promise<IResponse> {
+  @Patch(`:id/password`)
+  async updatePassword(
+    @Body() data: UpdatePasswordDTO,
+    @Param(`id`) id: string,
+  ): Promise<IResponse> {
     return await this.userService.updatePassword(data);
   }
 
-  @Delete()
+  @Delete(`:id`)
   @UseGuards(JwtAuthGuard)
-  async delete(@CurrentUser() user: Payload): Promise<IResponse> {
+  async delete(
+    @CurrentUser() user: Payload,
+    @Param(`id`) id: string,
+  ): Promise<IResponse> {
     return this.userService.delete(user);
   }
 }

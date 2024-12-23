@@ -25,6 +25,7 @@ import { Role } from 'src/modules/users/enums/users.enums';
 import { TaskSearchDTO } from './dtos/task-search-dto';
 import { Response } from 'express';
 import { IResponse } from 'src/common/interfaces/response.interface';
+import { TrialGuard } from 'src/common/guards/trial.guard';
 
 @Controller('api/tasks')
 export class TasksController {
@@ -38,7 +39,7 @@ export class TasksController {
     }),
   )
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TrialGuard)
   async findAll(
     @Query() search: TaskSearchDTO,
     @CurrentUser() user: Payload,
@@ -60,7 +61,7 @@ export class TasksController {
   }
 
   @Get(`:id`)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TrialGuard)
   async findOne(
     @Param(`id`) id: string,
     @CurrentUser() user: Payload,

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .payment-container {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
+      .payment-container input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      .payment-container button {
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .payment-container button:disabled {
+        background-color: #ccc;
+      }
+      .error {
+        color: red;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="payment-container">
+      <h2>Complete Payment</h2>
+      <div id="error-message" class="error"></div>
+      <form id="payment-form">
+        <div id="card-element"></div>
+        <!-- A Stripe Element will be inserted here. -->
+        <button type="submit" id="submit-button">Pay Now</button>
+      </form>
+    </div>
+
+    <script>
+      // Your Stripe public key
+      const stripe = Stripe(
+        'pk_test_51QQ11kCQEKXjEMea1SzmYhUbz3Tkinjp9xIXqrybKAXpmIjoQ14n8JDcxxKAQT0h8G26Sek6x6BGzmUMXqPe0yW100GJlqddA5',
+      );
+      const elements = stripe.elements();
+      const cardElement = elements.create('card');
+      cardElement.mount('#card-element');
+
+      // Extract userId and client_secret from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const userIdFromUrl = urlParams.get('userId');
+      const clientSecret = urlParams.get('client_secret');
+
+      // Handle the form submission
+      const form = document.getElementById('payment-form');
+      form.addEventListener('submit', async (event) => {
+        console.log(clientSecret, userIdFromUrl, 'urlssssssss');
+        event.preventDefault();
+
+        // Disable the button to prevent multiple clicks
+        document.getElementById('submit-button').disabled = true;
+
+        // Confirm the payment
+        const { error, paymentIntent } = await stripe.confirmCardPayment(
+          clientSecret,
+          {
+            payment_method: {
+              card: cardElement,
+            },
+          },
+        );
+
+        if (error) {
+          // Display error message to the user
+          document.getElementById('error-message').textContent = error.message;
+          document.getElementById('submit-button').disabled = false;
+        } else {
+          if (paymentIntent.status === 'succeeded') {
+            // Payment successful
+            alert('Payment successful!');
+            // You can redirect to another page or update user access here
+            window.location.href = '/success'; // Replace with your success page URL
+          } else {
+            document.getElementById('error-message').textContent =
+              'Payment failed. Please try again.';
+            document.getElementById('submit-button').disabled = false;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

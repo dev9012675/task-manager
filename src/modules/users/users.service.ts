@@ -25,6 +25,7 @@ import { MailService } from 'src/modules/mail/mail.service';
 import { Document } from 'mongoose';
 import { RoomsService } from '../rooms/rooms.service';
 import { TasksService } from '../tasks/tasks.service';
+import { Unique } from './interfaces/users.interfaces';
 
 @Injectable()
 export class UsersService {
@@ -42,12 +43,18 @@ export class UsersService {
     const session = await this.userModel.startSession();
     let createdUser: unknown = null;
     session.startTransaction();
+    const trialExpiration = new Date();
+    trialExpiration.setMinutes(trialExpiration.getMinutes() + 5);
     try {
-      const userCheck = await this.userModel
-        .findOne({ email: user.email })
-        .session(session);
+      const userCheck = await this.checkDuplicate({
+        email: user.email,
+        phone: user.phone,
+        password: user.password,
+      });
       if (userCheck) {
-        throw new ConflictException(`Email is already in use.`);
+        throw new ConflictException(
+          `Email,phone or password is already in use.`,
+        );
       }
 
       const salt = await bcrypt.genSalt();
@@ -56,6 +63,7 @@ export class UsersService {
           const temp = new this.managerModel({
             ...user,
             password: await bcrypt.hash(user.password, salt),
+            trialExpiration: trialExpiration,
           });
           createdUser = await temp.save({ session: session });
           break;
@@ -71,6 +79,7 @@ export class UsersService {
           const tempWorker = new this.workerModel({
             ...newUser,
             password: await bcrypt.hash(user.password, salt),
+            trialExpiration: trialExpiration,
             ...worker,
           });
 
@@ -95,6 +104,21 @@ export class UsersService {
       throw e;
     } finally {
       await session.endSession();
+    }
+  }
+
+  async checkDuplicate(data: Unique) {
+    const users = await this.userModel.find({
+      $or: [
+        { email: data.email },
+        { phone: data.phone },
+        { password: data.password },
+      ],
+    });
+    if (users.length > 0) {
+      return true;
+    } else {
+      return false;
     }
   }
 
@@ -142,23 +166,23 @@ export class UsersService {
     });
   }
 
-  async update(newData: UpdateUserDTO, currentUser: Payload) {
+  async update(newData: UpdateUserDTO, userId: string) {
     let user: unknown;
     const session = await this.userModel.startSession();
     session.startTransaction();
     const manager = newData.manager ?? {};
     const worker = newData.worker ?? {};
     try {
-      const userCheck = await this.userModel.findById(currentUser.userId);
+      const userCheck = await this.userModel.findById(userId);
       if (!userCheck) {
         throw new NotFoundException(`User not found.`);
       }
 
-      switch (currentUser.role) {
+      switch (userCheck.role) {
         case Role.Manager:
           user = await this.managerModel
             .findByIdAndUpdate(
-              currentUser.userId,
+              userId,
               {
                 ...newData,
                 ...manager,
@@ -176,7 +200,7 @@ export class UsersService {
           }*/
           user = await this.workerModel
             .findByIdAndUpdate(
-              currentUser.userId,
+              userId,
               {
                 ...newData,
                 ...worker,
@@ -367,5 +391,16 @@ export class UsersService {
     } finally {
       await session.endSession();
     }
+  }
+
+  async removeTrial(userId: string) {
+    return await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        isTrialActive: false,
+        $unset: { trialExpiration: `` },
+      },
+      { new: true },
+    );
   }
 }

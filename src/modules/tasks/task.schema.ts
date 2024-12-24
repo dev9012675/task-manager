@@ -12,22 +12,32 @@ export class Task {
   @Prop({ type: String, required: true, minlength: 1 })
   description: string;
 
-  @Prop({ required: true, enum: priority })
+  @Prop({ required: true, enum: priority, index: true })
   priority: priority;
 
-  @Prop({ required: true, enum: status, default: status.NEW })
+  @Prop({ required: true, enum: status, default: status.NEW, index: true })
   status: status;
 
-  @Prop({ type: Date, required: true })
+  @Prop({ type: Date, required: true, index: true })
   dueDate: Date;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  })
   manager: mongoose.Schema.Types.ObjectId;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  })
   worker: mongoose.Schema.Types.ObjectId;
 
-  @Prop([{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }])
+  @Prop([{ type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true }])
   collaborators?: mongoose.Schema.Types.ObjectId[];
 }
 

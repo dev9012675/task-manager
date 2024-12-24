@@ -2,7 +2,6 @@ import {
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
@@ -35,11 +34,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @WebSocketServer()
   server: Server<any, ServerToClientEvents>;
-
-  @SubscribeMessage('message')
-  handleMessage(): string {
-    return 'Hello world!';
-  }
 
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {

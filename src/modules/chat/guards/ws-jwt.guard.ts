@@ -34,21 +34,4 @@ export class WsJwtGuard implements CanActivate {
       throw new WsException(`Unauthorized`);
     }
   }
-
-  /*
-  verifyToken(token:string ){
-    return this.jwtService.verifyAsync(token , {
-         secret: process.env.JWT_SECRET
-    } )
-  }
-
-  static validateToken(client: Socket) {
-    const { authorization } = client.handshake.headers;
-
-    Logger.log({ authorization }, `Got the authorization`);
-    const token: string = authorization.split(` `)[1];
-    const payload = 
-    throw new Error(`Invalid Token`);
-  }
-    */
 }

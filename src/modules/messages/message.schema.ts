@@ -3,8 +3,6 @@ import mongoose, { Document } from 'mongoose';
 export class Message extends Document {
   sender: mongoose.Schema.Types.ObjectId;
 
-  receiver?: mongoose.Schema.Types.ObjectId;
-
   content: string;
 
   room: mongoose.Schema.Types.ObjectId;
@@ -21,9 +19,8 @@ export const MessageSchema = new mongoose.Schema(
       ref: `User`,
       required: true,
     },
-    receiver: { type: mongoose.Schema.Types.ObjectId, ref: `User` },
     content: { type: String, required: true },
-    room: { type: mongoose.Schema.Types.ObjectId, ref: `Room` },
+    room: { type: mongoose.Schema.Types.ObjectId, ref: `Room`, index: true },
   },
   { timestamps: true },
 );

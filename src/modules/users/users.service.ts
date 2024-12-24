@@ -8,14 +8,14 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User } from './user.schema';
+import { User } from './schemas/user.schema';
 import mongoose, { ClientSession, Model, Schema } from 'mongoose';
 import { CreateUserDTO } from './dtos/create-user-dto';
 import * as bcrypt from 'bcryptjs';
 import { UnauthorizedException } from '@nestjs/common';
 import { Types } from 'mongoose';
-import { Manager } from 'src/modules/managers/manager.schema';
-import { Worker } from 'src/modules/workers/worker.schema';
+import { Manager } from 'src/modules/users/schemas/manager.schema';
+import { Worker } from 'src/modules/users/schemas/worker.schema';
 import { UpdateUserDTO } from './dtos/update-user-dto';
 import { UpdatePasswordDTO } from './dtos/update-password-dto';
 import { Payload } from 'src/modules/auth/types/auth.types';

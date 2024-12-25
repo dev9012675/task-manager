@@ -6,12 +6,12 @@ import {
 import { CreateMessageDTO } from './dtos/create-message-dto';
 import { Message } from './message.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import { ChatGateway } from 'src/modules/chat/chat.gateway';
-import { UpdateMessageDTO } from './dtos/update-message-dto';
 import { SearchMessageDTO } from './dtos/message-search-dto';
 import { UsersService } from '../users/users.service';
 import { RoomsService } from '../rooms/rooms.service';
+import { DeleteMessage } from './interfaces/messages.interface';
 
 @Injectable()
 export class MessagesService {
@@ -59,6 +59,16 @@ export class MessagesService {
       .sort({ createdAt: 1 });
   }
 
+  async delete(options: DeleteMessage, session: ClientSession) {
+    return options.messageId
+      ? await this.messageModel
+          .findByIdAndDelete(options.messageId)
+          .session(session)
+      : await this.messageModel
+          .deleteMany({ room: options.room })
+          .session(session);
+  }
+  /*
   async findOne(id: string) {
     return await this.messageModel.findById(id);
   }
@@ -66,8 +76,5 @@ export class MessagesService {
   async update(id: string, content: UpdateMessageDTO) {
     return this.messageModel.findByIdAndUpdate(id, content);
   }
-
-  async delete(id: string) {
-    return this.messageModel.findByIdAndDelete(id);
-  }
+    */
 }

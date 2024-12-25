@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Res,
-  Param,
   Body,
   UsePipes,
   ValidationPipe,
@@ -34,7 +33,7 @@ export class RoomsController {
     }
     return rooms;
   }
-
+  /*
   @Get(`:id`)
   async findOne(
     @Param(`id`) id: string,
@@ -47,4 +46,5 @@ export class RoomsController {
     }
     return room;
   }
+    */
 }

@@ -21,10 +21,6 @@ export class RoomsService {
     return this.roomModel.find(query).populate(`task`);
   }
 
-  async findOne(id: string) {
-    return this.roomModel.findById(id);
-  }
-
   async update(
     taskId: mongoose.Types.ObjectId,
     data: UpdateRoomDTO,
@@ -36,12 +32,18 @@ export class RoomsService {
   }
 
   async remove(taskId: mongoose.Types.ObjectId, session: ClientSession) {
-    await this.roomModel.deleteOne({ task: taskId }).session(session);
+    return await this.roomModel
+      .findOneAndDelete({ task: taskId })
+      .session(session);
   }
 
   async removeUser(userId: string, session: ClientSession) {
     await this.roomModel
       .updateMany({ members: userId }, { $pull: { members: userId } })
       .session(session);
+  }
+
+  async findOne(id: string) {
+    return this.roomModel.findById(id);
   }
 }

@@ -87,8 +87,8 @@ export class TasksController {
     }),
   )
   @Post()
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(`manager`)
+  @UseGuards(JwtAuthGuard, TrialGuard, RoleGuard)
+  @Roles([Role.Manager])
   async create(
     @Body() task: CreateTaskDTO,
     @CurrentUser() user: Payload,
@@ -104,30 +104,30 @@ export class TasksController {
     }),
   )
   @Patch(`:id`)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TrialGuard)
   async update(
     @Param(`id`) id: string,
     @Body() task: UpdateTaskDTO,
     @CurrentUser() user: Payload,
   ): Promise<IResponse> {
-    switch (user.role) {
-      case Role.Manager:
-        return this.taskService.update(id, task, user);
-
-      case Role.Worker:
-        return task.status
-          ? this.taskService.update(id, { status: task.status }, user)
-          : { message: 'Workers can only update task status' };
-
-      default:
-        throw new ForbiddenException(`Invalid role.`);
+    if (user.role === Role.Manager || user.role === Role.Admin) {
+      return this.taskService.update(id, task, user);
+    } else if (user.role === Role.Worker) {
+      return task.status
+        ? this.taskService.update(id, { status: task.status }, user)
+        : { message: 'Workers can only update task status' };
+    } else {
+      throw new ForbiddenException(`Invalid role.`);
     }
   }
 
   @Delete(`:id`)
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @Roles(`manager`)
-  async delete(@Param(`id`) id: string): Promise<IResponse> {
-    return await this.taskService.delete(id);
+  @UseGuards(JwtAuthGuard, TrialGuard, RoleGuard)
+  @Roles([Role.Manager, Role.Admin])
+  async delete(
+    @Param(`id`) id: string,
+    @CurrentUser() user: Payload,
+  ): Promise<IResponse> {
+    return await this.taskService.delete(id, user);
   }
 }

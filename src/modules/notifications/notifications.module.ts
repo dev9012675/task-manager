@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { NotificationSchema } from './notification.schema';
@@ -13,7 +12,6 @@ import { ChatModule } from 'src/modules/chat/chat.module';
     ]),
     ChatModule,
   ],
-  controllers: [NotificationsController],
   providers: [NotificationsService],
   exports: [NotificationsService],
 })

@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { Gender, Role } from '../enums/users.enums';
 import { CreateWorkerDTO } from './worker-dto';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class CreateUserDTO {
   @IsString()
@@ -33,9 +33,11 @@ export class CreateUserDTO {
   @IsPhoneNumber()
   phone: string;
 
+  @Transform(({ value }) => (value ? value.toLowerCase() : value))
   @IsEnum(Gender)
   gender: Gender;
 
+  @Transform(({ value }) => (value ? value.toLowerCase() : value))
   @IsEnum(Role)
   role: Role = Role.Worker;
 

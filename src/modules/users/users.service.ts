@@ -26,6 +26,7 @@ import { Document } from 'mongoose';
 import { RoomsService } from '../rooms/rooms.service';
 import { TasksService } from '../tasks/tasks.service';
 import { Unique } from './interfaces/users.interfaces';
+import { UserSearchDTO } from './dtos/user-search.dto';
 
 @Injectable()
 export class UsersService {
@@ -133,7 +134,9 @@ export class UsersService {
   async findById(id: string, session?: ClientSession) {
     return session
       ? await this.userModel.findById(id).session(session)
-      : await this.userModel.findById(id);
+      : await this.userModel
+          .findById(id)
+          .select(`-hashedRefreshToken -updatedAt`);
   }
 
   async findManagerById(id: string, session?: ClientSession) {
@@ -148,14 +151,35 @@ export class UsersService {
       : await this.workerModel.findById(id);
   }
 
-  async findMultiple() {
-    const query = {};
+  async findMultiple(searchDTO: UserSearchDTO) {
+    const nameFilter = searchDTO.search
+      ? { $text: { $search: searchDTO.search } }
+      : {};
+    const genderFilter = searchDTO.gender ? { gender: searchDTO.gender } : {};
+    const roleFilter = searchDTO.role ? { role: searchDTO.role } : {};
+    const limit = searchDTO.limit ? searchDTO.limit : 5;
+    const skip = searchDTO.page ? (searchDTO.page - 1) * limit : 0;
+    const query = { ...nameFilter, ...genderFilter, ...roleFilter };
     return await this.userModel.aggregate([
       {
         $match: query,
       },
       {
-        $project: { hashedRefreshToken: 0, userType: 0, password: 0, __v: 0 },
+        $facet: {
+          users: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                hashedRefreshToken: 0,
+                userType: 0,
+                password: 0,
+                __v: 0,
+              },
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
       },
     ]);
   }
@@ -167,56 +191,19 @@ export class UsersService {
   }
 
   async update(newData: UpdateUserDTO, userId: string) {
-    let user: unknown;
     const session = await this.userModel.startSession();
     session.startTransaction();
-    const manager = newData.manager ?? {};
-    const worker = newData.worker ?? {};
     try {
-      const userCheck = await this.userModel.findById(userId);
+      const userCheck = await this.userModel.findById(userId).session(session);
       if (!userCheck) {
         throw new NotFoundException(`User not found.`);
       }
-
-      switch (userCheck.role) {
-        case Role.Manager:
-          user = await this.managerModel
-            .findByIdAndUpdate(
-              userId,
-              {
-                ...newData,
-                ...manager,
-              },
-              { new: true, runValidators: true },
-            )
-            .session(session);
-          break;
-        case Role.Worker:
-          /*const managerCheck = await this.userModel
-            .findById(worker.manager)
-            .session(session);
-          if (!managerCheck || managerCheck.role !== Role.Manager) {
-            throw new ConflictException(`Invalid user provided`);
-          }*/
-          user = await this.workerModel
-            .findByIdAndUpdate(
-              userId,
-              {
-                ...newData,
-                ...worker,
-              },
-              { new: true, runValidators: true },
-            )
-            .session(session);
-          /*await this.managerModel
-            .findByIdAndUpdate(worker.manager, {
-              $addToSet: { team: (user as Document)._id },
-            })
-            .session(session); */
-          break;
-        default:
-          throw new ForbiddenException(`Invalid role.`);
-      }
+      const user = await this.userModel
+        .findByIdAndUpdate(userId, newData, {
+          new: true,
+          runValidators: true,
+        })
+        .session(session);
 
       await session.commitTransaction();
       return { message: 'User updated successfully', data: user };
@@ -226,6 +213,18 @@ export class UsersService {
     } finally {
       await session.endSession();
     }
+  }
+
+  async verifyUser(id: string) {
+    console.log(`verify User ${id}`);
+    const user = await this.userModel.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User not found`);
+    } else if (user.isVerified === true) {
+      return { message: `User is already verified` };
+    }
+    await this.userModel.findByIdAndUpdate(id, { isVerified: true });
+    return { message: 'User verified successfully' };
   }
 
   async verifyEmail(data: VerifyDTO) {

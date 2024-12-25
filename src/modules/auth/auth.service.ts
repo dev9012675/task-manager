@@ -21,6 +21,11 @@ export class AuthService {
     loginDto: LoginDTO,
   ): Promise<{ id: string; accessToken: string; refreshToken: string }> {
     const user = await this.usersService.findOne({ email: loginDto.email });
+    if (!user.isVerified) {
+      throw new UnauthorizedException(
+        `User must be verified before they can log in`,
+      );
+    }
     const passwordMatched = await bcrypt.compare(
       loginDto.password,
       user.password,

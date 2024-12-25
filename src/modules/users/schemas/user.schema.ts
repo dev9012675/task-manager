@@ -60,6 +60,13 @@ export class User {
 
   @Prop()
   trialExpiration?: Date;
+
+  @Prop({ default: false })
+  isVerified: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+UserSchema.index({
+  firstName: 'text',
+  lastName: `text`,
+});

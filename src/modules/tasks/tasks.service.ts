@@ -19,6 +19,7 @@ import { NotificationsService } from 'src/modules/notifications/notifications.se
 import { TaskSearchDTO } from './dtos/task-search-dto';
 import { Types } from 'mongoose';
 import { status } from './enums/tasks.enums';
+import { MessagesService } from '../messages/messages.service';
 
 @Injectable()
 export class TasksService {
@@ -28,6 +29,7 @@ export class TasksService {
     private readonly usersService: UsersService,
     private readonly roomsService: RoomsService,
     private readonly notificationService: NotificationsService,
+    private readonly messagesService: MessagesService,
   ) {}
 
   async findAll(searchDTO: TaskSearchDTO, user: Payload) {
@@ -151,9 +153,13 @@ export class TasksService {
         );
         if (!worker) {
           throw new BadRequestException(`Worker not found`);
-        } else if (worker.manager.toString() !== user.userId) {
+        } else if (
+          (user.role === Role.Admin && task.manager !== worker.manager) ||
+          (user.role === Role.Manager &&
+            worker.manager.toString() !== user.userId)
+        ) {
           throw new ForbiddenException(
-            `Cannot assign tasks to workers outside your team.`,
+            `Cannot assign tasks to workers outside team.`,
           );
         }
       }
@@ -238,16 +244,25 @@ export class TasksService {
     }
   }
 
-  async delete(id: string) {
+  async delete(id: string, user: Payload) {
     const session = await this.taskModel.db.startSession();
     session.startTransaction();
     try {
-      const task = await this.taskModel.findByIdAndDelete(id).session(session);
+      const task = await this.taskModel
+        .findOneAndDelete({
+          _id: new Types.ObjectId(id),
+          ...(user.role === Role.Manager && {
+            manager: new Types.ObjectId(user.userId),
+          }),
+        })
+        .session(session);
 
       if (!task) {
         throw new NotFoundException('Task not found.');
       }
-      await this.roomsService.remove(task._id, session);
+      const room = await this.roomsService.remove(task._id, session);
+
+      await this.messagesService.delete({ room: room._id }, session);
       await session.commitTransaction();
       return {
         message: 'Task deleted successfully',

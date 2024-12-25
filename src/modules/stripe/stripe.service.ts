@@ -51,7 +51,10 @@ export class StripeService {
     });
     return {
       message: 'Payment Intent created successfully',
-      data: paymentIntent,
+      data: {
+        paymentIntent: paymentIntent,
+        paymentLink: paymentLink,
+      },
     };
   }
 

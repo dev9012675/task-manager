@@ -6,15 +6,11 @@ import {
   Body,
   Get,
   Res,
-  Param,
-  Delete,
-  Patch,
   Query,
 } from '@nestjs/common';
 import { CreateMessageDTO } from './dtos/create-message-dto';
 import { MessagesService } from './messages.service';
 import { Response } from 'express';
-import { UpdateMessageDTO } from './dtos/update-message-dto';
 import { SearchMessageDTO } from './dtos/message-search-dto';
 
 @Controller('api/messages')
@@ -53,7 +49,7 @@ export class MessagesController {
     }
     return messages;
   }
-
+  /*
   @Get(`:id`)
   async findOne(
     @Param(`id`) id: string,
@@ -66,6 +62,7 @@ export class MessagesController {
     }
     return message;
   }
+
 
   @UsePipes(
     new ValidationPipe({
@@ -100,4 +97,5 @@ export class MessagesController {
     }
     return { message: `Message deleted successfully` };
   }
+    */
 }

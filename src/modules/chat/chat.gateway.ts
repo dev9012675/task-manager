@@ -16,6 +16,7 @@ import * as dotenv from 'dotenv';
 import { Payload } from 'src/modules/auth/types/auth.types';
 import { RoomsService } from '../rooms/rooms.service';
 import { Notification } from '../notifications/notification.schema';
+import { UsersService } from '../users/users.service';
 dotenv.config();
 
 @WebSocketGateway({
@@ -30,6 +31,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private jwtService: JwtService,
     private roomsService: RoomsService,
+    private readonly usersService: UsersService,
   ) {}
 
   @WebSocketServer()
@@ -48,6 +50,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const payload: Payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.JWT_SECRET,
       });
+      if (!(await this.checkUser(payload.userId))) {
+        client.disconnect();
+        return;
+      }
       console.log(`User Connected:${payload.userId}`);
       this.users.set(payload.userId, client);
       console.log(`Users`, this.users);
@@ -66,44 +72,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.disconnect();
       return;
     }
-
-    /*try {
-     
-      const { authorization } = client.handshake.headers;
-      if (!authorization) {
-        throw new UnauthorizedException(`Credentials not present`);
-      }
-
-      const token = authorization.split(` `)[1];
-
-      const payload =  this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
-      console.log(payload);
-
-      return true;
-    } catch (error) {
-      console.log(error);
-      console.log(`There was an authorization error`);
-      client.disconnect();
-      throw error;
-    }
-      */
   }
-
-  /*
-  afterInit(client: Socket) {
-    client.use((req, next) => {});
-  }*/
-
-  /*
-    @SubscribeMessage('joinRoom')
-    handleJoinRoom(@MessageBody() data:{task:string} , @ConnectedSocket() client:Socket): string {
-      console.log(`Join Room data:${data.task}`)
-      client.join()
-      return 'Hello world!';
-    }
-      */
 
   handleDisconnect(client: Socket) {
     this.users.forEach((socket, userId) => {
@@ -130,5 +99,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           .emit(`sendNotification`, { description: notification.description });
       }
     });
+  }
+
+  async checkUser(userId: string) {
+    const dbUser = await this.usersService.findById(userId);
+    if (!dbUser) {
+      return false;
+    }
+    if (dbUser.isTrialActive === false) {
+      return true;
+    }
+    console.log(`Trial Guard`);
+    console.log(dbUser.id);
+    console.log(dbUser.trialExpiration);
+    if (dbUser.trialExpiration < new Date()) {
+      console.log(`Trial guard forbids access`);
+      return false;
+    }
+    return true;
   }
 }

@@ -5,6 +5,7 @@ import {
   IsDateString,
   IsMongoId,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { priority } from '../enums/tasks.enums';
 
 export class CreateTaskDTO {
@@ -18,6 +19,7 @@ export class CreateTaskDTO {
 
   @IsEnum(priority)
   @IsNotEmpty()
+  @Transform(({ value }) => (value ? value.toUpperCase() : value))
   priority: priority;
 
   @IsNotEmpty()

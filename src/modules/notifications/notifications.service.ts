@@ -14,14 +14,6 @@ export class NotificationsService {
     private chatGateway: ChatGateway,
   ) {}
 
-  async findMultiple() {
-    return await this.notificationModel.find();
-  }
-
-  async findOne(id: string) {
-    return await this.notificationModel.findById(id);
-  }
-
   async create(data: CreateNotificationDTO, session: ClientSession) {
     console.log(data);
     const notificationData = new this.notificationModel(data);
@@ -39,6 +31,16 @@ export class NotificationsService {
       ' have been updated',
     );
   }
+  /*
+  async findMultiple() {
+    return await this.notificationModel.find();
+  }
+
+  async findOne(id: string) {
+    return await this.notificationModel.findById(id);
+  }
+
+ 
 
   async consume(
     notificationId: string,
@@ -53,4 +55,5 @@ export class NotificationsService {
           $pull: { to: userId },
         });
   }
+        */
 }

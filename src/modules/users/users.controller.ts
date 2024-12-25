@@ -10,6 +10,8 @@ import {
   Body,
   Post,
   Delete,
+  UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { UsersService } from './users.service';
@@ -20,19 +22,27 @@ import { UpdateUserDTO } from './dtos/update-user-dto';
 import { UpdatePasswordDTO } from './dtos/update-password-dto';
 import { VerifyDTO } from './dtos/verify-dto';
 import { IResponse } from 'src/common/interfaces/response.interface';
+import { Role } from './enums/users.enums';
+import { RoleGuard } from 'src/common/guards/role.guard';
+import { Roles } from 'src/common/decorators/role.decorator';
+import { UserSearchDTO } from './dtos/user-search.dto';
+import { TrialGuard } from 'src/common/guards/trial.guard';
 
 @Controller('api/users')
 export class UsersController {
   constructor(private userService: UsersService) {}
 
   @Get(`:id`)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TrialGuard)
   async findOne(
     @Param(`id`) id: string,
     @CurrentUser() userData: Payload,
     @Res({ passthrough: true }) res: Response,
   ): Promise<IResponse> {
-    const user = await this.userService.findById(userData.userId);
+    if (userData.role !== Role.Admin && id !== userData.userId) {
+      throw new UnauthorizedException(`Cannot access data of other users.`);
+    }
+    const user = await this.userService.findById(id);
     if (!user) {
       res.status(204);
       return;
@@ -43,18 +53,33 @@ export class UsersController {
     };
   }
 
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   @Get()
+  @UseGuards(JwtAuthGuard, TrialGuard, RoleGuard)
+  @Roles([Role.Admin])
   async findMultiple(
+    @Query() searchDTO: UserSearchDTO,
     @Res({ passthrough: true }) res: Response,
   ): Promise<IResponse> {
-    const users = await this.userService.findMultiple();
-    if (users.length === 0) {
+    const data = await this.userService.findMultiple(searchDTO);
+    console.log(data);
+    if (data[0].users.length === 0) {
       res.status(204);
       return;
     }
+
     return {
-      message: 'Users fetched successfully',
-      data: users,
+      message: 'Users retrieved successfully',
+      data: {
+        users: data[0].users,
+        totalCount: data[0].totalCount[0].count,
+      },
     };
   }
 
@@ -66,14 +91,17 @@ export class UsersController {
     }),
   )
   @Patch(`:id`)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TrialGuard)
   async updateProfile(
     @Param(`id`) id: string,
     @Body()
     newData: UpdateUserDTO,
     @CurrentUser() userData: Payload,
   ): Promise<IResponse> {
-    return await this.userService.update(newData, userData.userId);
+    if (userData.role !== Role.Admin && id !== userData.userId) {
+      throw new UnauthorizedException(`Cannot access data of other users.`);
+    }
+    return await this.userService.update(newData, id);
   }
 
   @UsePipes(
@@ -83,11 +111,8 @@ export class UsersController {
       forbidNonWhitelisted: true,
     }),
   )
-  @Post(`:id/verify-email`)
-  async verifyEmail(
-    @Body() data: VerifyDTO,
-    @Param(`id`) id: string,
-  ): Promise<IResponse> {
+  @Post(`email-verification`)
+  async verifyEmail(@Body() data: VerifyDTO): Promise<IResponse> {
     return await this.userService.verifyEmail(data);
   }
 
@@ -98,20 +123,27 @@ export class UsersController {
       forbidNonWhitelisted: true,
     }),
   )
-  @Patch(`:id/password`)
-  async updatePassword(
-    @Body() data: UpdatePasswordDTO,
-    @Param(`id`) id: string,
-  ): Promise<IResponse> {
+  @Patch(`password`)
+  async updatePassword(@Body() data: UpdatePasswordDTO): Promise<IResponse> {
     return await this.userService.updatePassword(data);
   }
 
+  @Patch(`:id/verify`)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles([Role.Admin])
+  async verifyUser(@Param(`id`) id: string) {
+    return await this.userService.verifyUser(id);
+  }
+
   @Delete(`:id`)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TrialGuard)
   async delete(
     @CurrentUser() user: Payload,
     @Param(`id`) id: string,
   ): Promise<IResponse> {
+    if (user.role !== Role.Admin && id !== user.userId) {
+      throw new UnauthorizedException(`Cannot access data of other users.`);
+    }
     return this.userService.delete(user);
   }
 }

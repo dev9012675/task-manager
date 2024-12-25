@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsArray,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { priority, status } from '../enums/tasks.enums';
 
 export class UpdateTaskDTO {
@@ -19,10 +20,12 @@ export class UpdateTaskDTO {
 
   @IsEnum(priority)
   @IsOptional()
+  @Transform(({ value }) => (value ? value.toUpperCase() : value))
   priority?: priority;
 
   @IsEnum(status)
   @IsOptional()
+  @Transform(({ value }) => (value ? value.toUpperCase() : value))
   status?: status;
 
   @IsOptional()

@@ -2,14 +2,10 @@ import {
   IsEmail,
   IsString,
   IsEnum,
-  ValidateNested,
   IsOptional,
   IsPhoneNumber,
 } from 'class-validator';
 import { Gender } from '../enums/users.enums';
-import { UpdateWorkerDTO } from './worker-dto';
-import { Type } from 'class-transformer';
-import { UpdateManagerDTO } from './manager-dto';
 
 export class UpdateUserDTO {
   @IsString()
@@ -32,14 +28,4 @@ export class UpdateUserDTO {
   @IsEnum(Gender)
   @IsOptional()
   gender?: Gender;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => UpdateWorkerDTO)
-  worker?: UpdateWorkerDTO;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => UpdateManagerDTO)
-  manager?: UpdateManagerDTO;
 }

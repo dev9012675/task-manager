@@ -6,6 +6,7 @@ import { Task, TaskSchema } from './task.schema';
 import { UsersModule } from 'src/modules/users/users.module';
 import { RoomsModule } from 'src/modules/rooms/rooms.module';
 import { NotificationsModule } from 'src/modules/notifications/notifications.module';
+import { MessagesModule } from '../messages/messages.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { NotificationsModule } from 'src/modules/notifications/notifications.mod
     forwardRef(() => UsersModule),
     RoomsModule,
     NotificationsModule,
+    MessagesModule,
   ],
   controllers: [TasksController],
   providers: [TasksService],

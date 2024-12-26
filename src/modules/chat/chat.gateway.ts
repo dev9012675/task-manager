@@ -8,7 +8,7 @@ import {
 import { Server } from 'socket.io';
 import { ServerToClientEvents } from './types/chat.types';
 import { Message } from '../messages/message.schema';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Inject, forwardRef } from '@nestjs/common';
 import { WsJwtGuard } from 'src/modules/chat/guards/ws-jwt.guard';
 import { Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
@@ -31,6 +31,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private jwtService: JwtService,
     private roomsService: RoomsService,
+    @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
   ) {}
 

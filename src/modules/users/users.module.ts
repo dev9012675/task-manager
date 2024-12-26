@@ -11,6 +11,7 @@ import { UsersController } from './users.controller';
 import { MailModule } from 'src/modules/mail/mail.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { TasksModule } from '../tasks/tasks.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { TasksModule } from '../tasks/tasks.module';
     MailModule,
     RoomsModule,
     forwardRef(() => TasksModule),
+    forwardRef(() => NotificationsModule),
   ],
   providers: [UsersService],
   exports: [UsersService],

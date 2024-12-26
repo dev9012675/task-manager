@@ -27,6 +27,7 @@ import { RoleGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { UserSearchDTO } from './dtos/user-search.dto';
 import { TrialGuard } from 'src/common/guards/trial.guard';
+import { ReassignWorkerDTO } from './dtos/reassign-worker.dto';
 
 @Controller('api/users')
 export class UsersController {
@@ -90,6 +91,18 @@ export class UsersController {
       forbidNonWhitelisted: true,
     }),
   )
+  @Patch(`password`)
+  async updatePassword(@Body() data: UpdatePasswordDTO): Promise<IResponse> {
+    return await this.userService.updatePassword(data);
+  }
+
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   @Patch(`:id`)
   @UseGuards(JwtAuthGuard, TrialGuard)
   async updateProfile(
@@ -116,6 +129,13 @@ export class UsersController {
     return await this.userService.verifyEmail(data);
   }
 
+  @Patch(`:id/verify`)
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @Roles([Role.Admin])
+  async verifyUser(@Param(`id`) id: string) {
+    return await this.userService.verifyUser(id);
+  }
+
   @UsePipes(
     new ValidationPipe({
       transform: true,
@@ -123,16 +143,14 @@ export class UsersController {
       forbidNonWhitelisted: true,
     }),
   )
-  @Patch(`password`)
-  async updatePassword(@Body() data: UpdatePasswordDTO): Promise<IResponse> {
-    return await this.userService.updatePassword(data);
-  }
-
-  @Patch(`:id/verify`)
+  @Patch(`:id/reassign`)
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([Role.Admin])
-  async verifyUser(@Param(`id`) id: string) {
-    return await this.userService.verifyUser(id);
+  async reassignWorker(
+    @Param(`id`) id: string,
+    @Body() data: ReassignWorkerDTO,
+  ): Promise<IResponse> {
+    return await this.userService.reassignWorkers(id, data);
   }
 
   @Delete(`:id`)
@@ -144,6 +162,6 @@ export class UsersController {
     if (user.role !== Role.Admin && id !== user.userId) {
       throw new UnauthorizedException(`Cannot access data of other users.`);
     }
-    return this.userService.delete(user);
+    return this.userService.delete(id);
   }
 }

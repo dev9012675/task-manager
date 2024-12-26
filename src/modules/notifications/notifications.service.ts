@@ -31,6 +31,10 @@ export class NotificationsService {
       ' have been updated',
     );
   }
+
+  async deleteByUser(userId: string, session: ClientSession) {
+    await this.notificationModel.deleteMany({ to: userId }).session(session);
+  }
   /*
   async findMultiple() {
     return await this.notificationModel.find();

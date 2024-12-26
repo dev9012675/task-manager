@@ -101,68 +101,79 @@ export class TasksService {
         `Cannot assign tasks to workers outside your team.`,
       );
     }
-    const createdTask = await this.taskModel.create({
-      ...task,
-      manager: user.userId,
-    });
-    await this.roomsService.create({
-      task: createdTask.id,
-      members: [createdTask.manager.toString(), createdTask.worker.toString()],
-    });
-    return { message: 'Task created successfully', data: createdTask };
+    const session = await this.taskModel.startSession();
+    session.startTransaction();
+    try {
+      const createdTask = new this.taskModel({
+        ...task,
+        manager: user.userId,
+      });
+      await createdTask.save({ session: session });
+      await this.roomsService.create(
+        {
+          task: createdTask.id,
+          members: [
+            createdTask.manager.toString(),
+            createdTask.worker.toString(),
+          ],
+        },
+        session,
+      );
+      await session.commitTransaction();
+      return { message: 'Task created successfully', data: createdTask };
+    } catch (e) {
+      await session.abortTransaction();
+      throw e;
+    } finally {
+      await session.endSession();
+    }
   }
 
   async update(id: string, data: UpdateTaskDTO, user: Payload) {
+    const task = await this.taskModel.findOne({
+      _id: new Types.ObjectId(id),
+      ...(user.role === Role.Manager && {
+        manager: new Types.ObjectId(user.userId),
+      }),
+      ...(user.role === Role.Worker && {
+        worker: new Types.ObjectId(user.userId),
+      }),
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found.');
+    }
+
+    if (task.status === status.COMPLETED) {
+      throw new BadRequestException(`Cannot update completed task`);
+    }
+    if (
+      typeof data.status !== `undefined` &&
+      data.status === status.NEW &&
+      task.status === status.IN_PROGRESS
+    ) {
+      throw new BadRequestException(
+        `Cannot change task status from IN_PROGRESS TO NEW`,
+      );
+    }
+
+    if (typeof data.worker !== `undefined`) {
+      const worker = await this.usersService.findWorkerById(data.worker);
+      if (!worker) {
+        throw new BadRequestException(`Worker not found`);
+      } else if (
+        (user.role === Role.Admin && task.manager !== worker.manager) ||
+        (user.role === Role.Manager &&
+          worker.manager.toString() !== user.userId)
+      ) {
+        throw new ForbiddenException(
+          `Cannot assign tasks to workers outside team.`,
+        );
+      }
+    }
     const session = await this.taskModel.db.startSession();
     session.startTransaction();
     try {
-      const task = await this.taskModel
-        .findOne({
-          _id: new Types.ObjectId(id),
-          ...(user.role === Role.Manager && {
-            manager: new Types.ObjectId(user.userId),
-          }),
-          ...(user.role === Role.Worker && {
-            worker: new Types.ObjectId(user.userId),
-          }),
-        })
-        .session(session);
-
-      if (!task) {
-        throw new NotFoundException('Task not found.');
-      }
-
-      if (task.status === status.COMPLETED) {
-        throw new BadRequestException(`Cannot update completed task`);
-      }
-
-      if (
-        typeof data.status !== `undefined` &&
-        data.status === status.NEW &&
-        task.status === status.IN_PROGRESS
-      ) {
-        throw new BadRequestException(
-          `Cannot change task status from IN_PROGRESS TO NEW`,
-        );
-      }
-
-      if (typeof data.worker !== `undefined`) {
-        const worker = await this.usersService.findWorkerById(
-          data.worker,
-          session,
-        );
-        if (!worker) {
-          throw new BadRequestException(`Worker not found`);
-        } else if (
-          (user.role === Role.Admin && task.manager !== worker.manager) ||
-          (user.role === Role.Manager &&
-            worker.manager.toString() !== user.userId)
-        ) {
-          throw new ForbiddenException(
-            `Cannot assign tasks to workers outside team.`,
-          );
-        }
-      }
       if (typeof data.collaborators !== `undefined`) {
         if (
           data.collaborators.includes(task.manager.toString()) ||
@@ -178,7 +189,6 @@ export class TasksService {
         const collaboratorCheck = await this.usersService.checkCollaborators(
           data.collaborators,
           task.manager,
-          session,
         );
         if (
           collaboratorCheck.length === 0 ||
@@ -245,21 +255,19 @@ export class TasksService {
   }
 
   async delete(id: string, user: Payload) {
+    const task = await this.taskModel.findOneAndDelete({
+      _id: new Types.ObjectId(id),
+      ...(user.role === Role.Manager && {
+        manager: new Types.ObjectId(user.userId),
+      }),
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found.');
+    }
     const session = await this.taskModel.db.startSession();
     session.startTransaction();
     try {
-      const task = await this.taskModel
-        .findOneAndDelete({
-          _id: new Types.ObjectId(id),
-          ...(user.role === Role.Manager && {
-            manager: new Types.ObjectId(user.userId),
-          }),
-        })
-        .session(session);
-
-      if (!task) {
-        throw new NotFoundException('Task not found.');
-      }
       const room = await this.roomsService.remove(task._id, session);
 
       await this.messagesService.delete({ room: room._id }, session);
@@ -276,10 +284,10 @@ export class TasksService {
     }
   }
 
-  async removeUser(user: Payload, session: ClientSession) {
+  async removeUser(user: Omit<Payload, 'email'>, session: ClientSession) {
     if (user.role === Role.Manager) {
       await this.taskModel
-        .updateMany({ manager: user.userId }, { manager: null })
+        .deleteMany({ manager: user.userId })
         .session(session);
       return;
     } else if (user.role === Role.Worker) {

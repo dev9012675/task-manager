@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Socket } from 'socket.io';
 import * as dotenv from 'dotenv';
@@ -10,6 +16,7 @@ dotenv.config();
 export class WsJwtGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
   ) {}
 

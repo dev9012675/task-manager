@@ -6,13 +6,16 @@ import { RoomSearchDTO } from './dtos/room-search-dto';
 import { CreateRoomDTO } from './dtos/create-room-dto';
 import { ClientSession } from 'mongoose';
 import { UpdateRoomDTO } from './dtos/update-room-dto';
+import { Payload } from '../auth/types/auth.types';
+import { Role } from '../users/enums/users.enums';
 
 @Injectable()
 export class RoomsService {
   constructor(@InjectModel(Room.name) private roomModel: Model<Room>) {}
 
-  async create(room: CreateRoomDTO) {
-    return await this.roomModel.create(room);
+  async create(room: CreateRoomDTO, session: ClientSession) {
+    const createdRoom = new this.roomModel(room);
+    return await createdRoom.save({ session: session });
   }
 
   async findMultiple(search: RoomSearchDTO) {
@@ -37,10 +40,17 @@ export class RoomsService {
       .session(session);
   }
 
-  async removeUser(userId: string, session: ClientSession) {
-    await this.roomModel
-      .updateMany({ members: userId }, { $pull: { members: userId } })
-      .session(session);
+  async removeUser(user: Omit<Payload, 'email'>, session: ClientSession) {
+    return user.role === Role.Worker
+      ? await this.roomModel
+          .updateMany(
+            { members: user.userId },
+            { $pull: { members: user.userId } },
+          )
+          .session(session)
+      : await this.roomModel
+          .deleteMany({ members: user.userId })
+          .session(session);
   }
 
   async findOne(id: string) {

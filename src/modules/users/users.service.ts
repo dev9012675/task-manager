@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './schemas/user.schema';
-import mongoose, { ClientSession, Model, Schema } from 'mongoose';
+import mongoose, { Model, Schema } from 'mongoose';
 import { CreateUserDTO } from './dtos/create-user-dto';
 import * as bcrypt from 'bcryptjs';
 import { UnauthorizedException } from '@nestjs/common';
@@ -18,7 +18,6 @@ import { Manager } from 'src/modules/users/schemas/manager.schema';
 import { Worker } from 'src/modules/users/schemas/worker.schema';
 import { UpdateUserDTO } from './dtos/update-user-dto';
 import { UpdatePasswordDTO } from './dtos/update-password-dto';
-import { Payload } from 'src/modules/auth/types/auth.types';
 import { Role } from './enums/users.enums';
 import { VerifyDTO } from './dtos/verify-dto';
 import { MailService } from 'src/modules/mail/mail.service';
@@ -27,6 +26,8 @@ import { RoomsService } from '../rooms/rooms.service';
 import { TasksService } from '../tasks/tasks.service';
 import { Unique } from './interfaces/users.interfaces';
 import { UserSearchDTO } from './dtos/user-search.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ReassignWorkerDTO } from './dtos/reassign-worker.dto';
 
 @Injectable()
 export class UsersService {
@@ -38,74 +39,62 @@ export class UsersService {
     private readonly roomService: RoomsService,
     @Inject(forwardRef(() => TasksService))
     private readonly tasksService: TasksService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationService: NotificationsService,
   ) {}
 
   async create(user: CreateUserDTO) {
-    const session = await this.userModel.startSession();
     let createdUser: unknown = null;
-    session.startTransaction();
     const trialExpiration = new Date();
     trialExpiration.setMinutes(trialExpiration.getMinutes() + 5);
-    try {
-      const userCheck = await this.checkDuplicate({
-        email: user.email,
-        phone: user.phone,
-        password: user.password,
-      });
-      if (userCheck) {
-        throw new ConflictException(
-          `Email,phone or password is already in use.`,
-        );
-      }
-
-      const salt = await bcrypt.genSalt();
-      switch (user.role) {
-        case Role.Manager: {
-          const temp = new this.managerModel({
-            ...user,
-            password: await bcrypt.hash(user.password, salt),
-            trialExpiration: trialExpiration,
-          });
-          createdUser = await temp.save({ session: session });
-          break;
-        }
-        case Role.Worker: {
-          const { worker, ...newUser } = user;
-          const managerCheck = await this.userModel
-            .findById(worker.manager)
-            .session(session);
-          if (!managerCheck || managerCheck.role !== Role.Manager) {
-            throw new ConflictException(`Invalid user provided`);
-          }
-          const tempWorker = new this.workerModel({
-            ...newUser,
-            password: await bcrypt.hash(user.password, salt),
-            trialExpiration: trialExpiration,
-            ...worker,
-          });
-
-          createdUser = await tempWorker.save({ session: session });
-          await this.managerModel
-            .findByIdAndUpdate(worker.manager, {
-              $addToSet: { team: (createdUser as Document)._id },
-            })
-            .session(session);
-          break;
-        }
-        default:
-          throw new ForbiddenException(`Invalid role.`);
-      }
-      await session.commitTransaction();
-      return {
-        message: 'User created successfully',
-        data: createdUser,
-      };
-    } catch (e) {
-      await session.abortTransaction();
-      throw e;
-    } finally {
-      await session.endSession();
+    const userCheck = await this.checkDuplicate({
+      email: user.email,
+      phone: user.phone,
+      password: user.password,
+    });
+    if (userCheck) {
+      throw new ConflictException(`Email,phone or password is already in use.`);
     }
+
+    const salt = await bcrypt.genSalt();
+    switch (user.role) {
+      case Role.Manager: {
+        const temp = new this.managerModel({
+          ...user,
+          password: await bcrypt.hash(user.password, salt),
+          trialExpiration: trialExpiration,
+        });
+        createdUser = await temp.save();
+        break;
+      }
+      case Role.Worker: {
+        const { worker, ...newUser } = user;
+        const managerCheck = await this.userModel.findById(worker.manager);
+
+        if (!managerCheck || managerCheck.role !== Role.Manager) {
+          throw new ConflictException(`Invalid user provided`);
+        }
+        const tempWorker = new this.workerModel({
+          ...newUser,
+          password: await bcrypt.hash(user.password, salt),
+          trialExpiration: trialExpiration,
+          ...worker,
+        });
+
+        createdUser = await tempWorker.save();
+        await this.managerModel.findByIdAndUpdate(worker.manager, {
+          $addToSet: { team: (createdUser as Document)._id },
+        });
+
+        break;
+      }
+      default:
+        throw new ForbiddenException(`Invalid role.`);
+    }
+    return {
+      message: 'User created successfully',
+      data: createdUser,
+    };
   }
 
   async checkDuplicate(data: Unique) {
@@ -131,24 +120,16 @@ export class UsersService {
     return user;
   }
 
-  async findById(id: string, session?: ClientSession) {
-    return session
-      ? await this.userModel.findById(id).session(session)
-      : await this.userModel
-          .findById(id)
-          .select(`-hashedRefreshToken -updatedAt`);
+  async findById(id: string) {
+    return await this.userModel.findById(id);
   }
 
-  async findManagerById(id: string, session?: ClientSession) {
-    return session
-      ? await this.managerModel.findById(id).session(session)
-      : await this.managerModel.findById(id);
+  async findManagerById(id: string) {
+    return await this.managerModel.findById(id);
   }
 
-  async findWorkerById(id: string, session?: ClientSession) {
-    return session
-      ? await this.workerModel.findById(id).session(session)
-      : await this.workerModel.findById(id);
+  async findWorkerById(id: string) {
+    return await this.workerModel.findById(id);
   }
 
   async findMultiple(searchDTO: UserSearchDTO) {
@@ -191,28 +172,16 @@ export class UsersService {
   }
 
   async update(newData: UpdateUserDTO, userId: string) {
-    const session = await this.userModel.startSession();
-    session.startTransaction();
-    try {
-      const userCheck = await this.userModel.findById(userId).session(session);
-      if (!userCheck) {
-        throw new NotFoundException(`User not found.`);
-      }
-      const user = await this.userModel
-        .findByIdAndUpdate(userId, newData, {
-          new: true,
-          runValidators: true,
-        })
-        .session(session);
-
-      await session.commitTransaction();
-      return { message: 'User updated successfully', data: user };
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      await session.endSession();
+    const userCheck = await this.userModel.findById(userId);
+    if (!userCheck) {
+      throw new NotFoundException(`User not found.`);
     }
+    const user = await this.userModel.findByIdAndUpdate(userId, newData, {
+      new: true,
+      runValidators: true,
+    });
+
+    return { message: 'User updated successfully', data: user };
   }
 
   async verifyUser(id: string) {
@@ -342,30 +311,36 @@ export class UsersService {
   async checkCollaborators(
     collaborators: string[],
     manager: Schema.Types.ObjectId,
-    session: ClientSession,
   ) {
     const collaboratorIds = collaborators.map(
       (id) => new mongoose.Types.ObjectId(id),
     );
-    const check = await this.workerModel
-      .find({ _id: { $in: collaboratorIds }, manager: manager })
-      .session(session);
+    const check = await this.workerModel.find({
+      _id: { $in: collaboratorIds },
+      manager: manager,
+    });
     console.log(check);
     return check;
   }
 
-  async delete(user: Payload) {
+  async delete(user: string) {
     const session = await this.userModel.startSession();
     session.startTransaction();
     try {
       const deletedUser = await this.userModel
-        .findByIdAndDelete(user.userId)
+        .findByIdAndDelete(user)
         .session(session);
       if (!deletedUser) {
         throw new BadRequestException(`User not found`);
       }
-      await this.roomService.removeUser(user.userId, session);
-      await this.tasksService.removeUser(user, session);
+      await this.roomService.removeUser(
+        { userId: deletedUser.id, role: deletedUser.role },
+        session,
+      );
+      await this.tasksService.removeUser(
+        { userId: deletedUser.id, role: deletedUser.role },
+        session,
+      );
       if (deletedUser.role === Role.Manager) {
         await this.workerModel
           .updateMany({ manager: deletedUser._id }, { manager: null })
@@ -383,6 +358,48 @@ export class UsersService {
       return {
         message: `User deleted successfully`,
         data: user,
+      };
+    } catch (e) {
+      await session.abortTransaction();
+      throw e;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async reassignWorkers(workerId: string, data: ReassignWorkerDTO) {
+    const worker = await this.workerModel.findById(workerId);
+    if (!worker) {
+      throw new NotFoundException(`Worker not found`);
+    }
+    if (worker.manager) {
+      throw new BadRequestException(
+        `Only workers with no managers can be reassigned`,
+      );
+    }
+    const session = await this.workerModel.startSession();
+    session.startTransaction();
+    try {
+      const manager = await this.managerModel
+        .findByIdAndUpdate(data.managerId, {
+          $addToSet: { team: workerId },
+        })
+        .session(session);
+      if (!manager) {
+        throw new NotFoundException(`Manager not found`);
+      }
+      const updatedWorker = await this.workerModel
+        .findByIdAndUpdate(
+          workerId,
+          { manager: data.managerId },
+          { new: true, runValidators: true },
+        )
+        .session(session);
+
+      await session.commitTransaction();
+      return {
+        message: `Worker reassigned successfully`,
+        data: updatedWorker,
       };
     } catch (e) {
       await session.abortTransaction();

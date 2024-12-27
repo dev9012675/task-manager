@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
 export interface DeleteMessage {
-  room?: Types.ObjectId;
+  rooms?: Types.ObjectId[];
   messageId?: string;
 }

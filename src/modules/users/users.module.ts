@@ -12,6 +12,7 @@ import { MailModule } from 'src/modules/mail/mail.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { TasksModule } from '../tasks/tasks.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MessagesModule } from '../messages/messages.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     RoomsModule,
     forwardRef(() => TasksModule),
     forwardRef(() => NotificationsModule),
+    forwardRef(() => MessagesModule),
   ],
   providers: [UsersService],
   exports: [UsersService],

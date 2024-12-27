@@ -2,6 +2,8 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateMessageDTO } from './dtos/create-message-dto';
 import { Message } from './message.schema';
@@ -18,6 +20,7 @@ export class MessagesService {
   constructor(
     @InjectModel(Message.name) private messageModel: Model<Message>,
     private readonly chatGateway: ChatGateway,
+    @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
     private readonly roomService: RoomsService,
   ) {}
@@ -65,7 +68,7 @@ export class MessagesService {
           .findByIdAndDelete(options.messageId)
           .session(session)
       : await this.messageModel
-          .deleteMany({ room: options.room })
+          .deleteMany({ room: { $in: options.rooms } })
           .session(session);
   }
   /*

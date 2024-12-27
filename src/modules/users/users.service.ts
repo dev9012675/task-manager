@@ -28,6 +28,7 @@ import { Unique } from './interfaces/users.interfaces';
 import { UserSearchDTO } from './dtos/user-search.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ReassignWorkerDTO } from './dtos/reassign-worker.dto';
+import { MessagesService } from '../messages/messages.service';
 
 @Injectable()
 export class UsersService {
@@ -41,6 +42,8 @@ export class UsersService {
     private readonly tasksService: TasksService,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationService: NotificationsService,
+    @Inject(forwardRef(() => MessagesService))
+    private readonly messagesService: MessagesService,
   ) {}
 
   async create(user: CreateUserDTO) {
@@ -211,7 +214,7 @@ export class UsersService {
     await this.mailService.sendEmail({
       to: user.email,
       subject: 'Email Verification',
-      text: `Your Verification Code is ${verificationCode}`, // This is still useful for text-only clients
+      text: `Hello ${user.firstName}.Your Verification Code is ${verificationCode}`, // This is still useful for text-only clients
       html: `
           <html>
             <head>
@@ -264,7 +267,7 @@ export class UsersService {
                   <h2>Email Verification</h2>
                 </div>
                 <div class="content">
-                  <p>Hello,</p>
+                  <p>Hello ${user.firstName},</p>
                   <p>We received a request to verify your email address. Please use the verification code below to complete the process:</p>
                   <div class="verification-code">
                     ${verificationCode}
@@ -273,7 +276,7 @@ export class UsersService {
                 </div>
                 <div class="footer">
                   <p>Thank you for using our service!</p>
-                  <p>Best regards, The [Your Service Name] Team</p>
+                  <p>Best regards, The Task Manager Team</p>
                 </div>
               </div>
             </body>
@@ -333,10 +336,11 @@ export class UsersService {
       if (!deletedUser) {
         throw new BadRequestException(`User not found`);
       }
-      await this.roomService.removeUser(
+      const rooms = await this.roomService.removeUser(
         { userId: deletedUser.id, role: deletedUser.role },
         session,
       );
+
       await this.tasksService.removeUser(
         { userId: deletedUser.id, role: deletedUser.role },
         session,
@@ -345,6 +349,9 @@ export class UsersService {
         await this.workerModel
           .updateMany({ manager: deletedUser._id }, { manager: null })
           .session(session);
+
+        const roomIds = rooms.map((room) => room._id);
+        await this.messagesService.delete({ rooms: roomIds }, session);
       } else if (deletedUser.role === Role.Worker) {
         await this.managerModel
           .updateMany(

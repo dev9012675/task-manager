@@ -41,16 +41,23 @@ export class RoomsService {
   }
 
   async removeUser(user: Omit<Payload, 'email'>, session: ClientSession) {
-    return user.role === Role.Worker
-      ? await this.roomModel
-          .updateMany(
-            { members: user.userId },
-            { $pull: { members: user.userId } },
-          )
-          .session(session)
-      : await this.roomModel
-          .deleteMany({ members: user.userId })
-          .session(session);
+    const rooms = await this.roomModel.find({ members: user.userId });
+    if (rooms.length === 0) {
+      return rooms;
+    }
+    if (user.role === Role.Worker) {
+      await this.roomModel
+        .updateMany(
+          { members: user.userId },
+          { $pull: { members: user.userId } },
+        )
+        .session(session);
+    } else {
+      await this.roomModel
+        .deleteMany({ members: user.userId })
+        .session(session);
+    }
+    return rooms;
   }
 
   async findOne(id: string) {

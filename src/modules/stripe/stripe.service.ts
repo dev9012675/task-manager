@@ -46,8 +46,74 @@ export class StripeService {
     );
     await this.mailService.sendEmail({
       to: userData.email,
-      text: `Hello ${paymentLink}`,
-      subject: `Test`,
+      text: `Hello ${userData.firstName}. Here is your Payment Link: ${paymentLink}`,
+      subject: `Payment`,
+      html: `
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              background-color: #f4f7fc;
+              margin: 0;
+              padding: 0;
+              color: #333;
+            }
+            .container {
+              width: 100%;
+              max-width: 600px;
+              margin: 20px auto;
+              background-color: #ffffff;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+              text-align: center;
+              padding-bottom: 20px;
+              border-bottom: 2px solid #eee;
+            }
+            .content {
+              padding: 20px 0;
+              text-align: center;
+            }
+            .verification-code {
+              display: inline-block;
+              font-size: 24px;
+              font-weight: bold;
+              color: #4CAF50;
+              background-color: #f0f9f4;
+              padding: 10px 20px;
+              border-radius: 5px;
+            }
+            .footer {
+              text-align: center;
+              font-size: 12px;
+              color: #777;
+              margin-top: 30px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2>Email Verification</h2>
+            </div>
+            <div class="content">
+              <p>Hello ${userData.firstName},</p>
+              <p>Use the below link to complete your payment:</p>
+              <div class="verification-code">
+                ${paymentLink}
+              </div>
+            </div>
+            <div class="footer">
+              <p>Thank you for using our service!</p>
+              <p>Best regards, The Task Manager Team</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
     });
     return {
       message: 'Payment Intent created successfully',

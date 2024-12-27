@@ -270,7 +270,7 @@ export class TasksService {
     try {
       const room = await this.roomsService.remove(task._id, session);
 
-      await this.messagesService.delete({ room: room._id }, session);
+      await this.messagesService.delete({ rooms: [room._id] }, session);
       await session.commitTransaction();
       return {
         message: 'Task deleted successfully',

@@ -5,12 +5,16 @@ import {
   Body,
   UsePipes,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { Response } from 'express';
 import { RoomSearchDTO } from './dtos/room-search-dto';
+import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { TrialGuard } from 'src/common/guards/trial.guard';
 
 @Controller('api/rooms')
+@UseGuards(JwtAuthGuard, TrialGuard)
 export class RoomsController {
   constructor(private roomService: RoomsService) {}
 

@@ -7,13 +7,17 @@ import {
   Get,
   Res,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateMessageDTO } from './dtos/create-message-dto';
 import { MessagesService } from './messages.service';
 import { Response } from 'express';
 import { SearchMessageDTO } from './dtos/message-search-dto';
+import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { TrialGuard } from 'src/common/guards/trial.guard';
 
 @Controller('api/messages')
+@UseGuards(JwtAuthGuard, TrialGuard)
 export class MessagesController {
   constructor(private readonly messageService: MessagesService) {}
 
@@ -27,7 +31,7 @@ export class MessagesController {
   @Post()
   async create(@Body() message: CreateMessageDTO) {
     console.log(`Message to be Created: ${message}`);
-    return this.messageService.create(message);
+    return await this.messageService.create(message);
   }
 
   @Get()

@@ -27,7 +27,7 @@ import { MessagesModule } from '../messages/messages.module';
       },
     ]),
     MailModule,
-    RoomsModule,
+    forwardRef(() => RoomsModule),
     forwardRef(() => TasksModule),
     forwardRef(() => NotificationsModule),
     forwardRef(() => MessagesModule),

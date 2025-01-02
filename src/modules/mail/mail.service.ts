@@ -7,7 +7,7 @@ export class MailService {
   constructor(private mailerService: MailerService) {}
 
   async sendEmail(data: EmailDTO) {
-    this.mailerService.sendMail({
+    await this.mailerService.sendMail({
       from: `${process.env.SENDER_NAME} ${process.env.SENDER_MAIL}`,
       ...data,
     });

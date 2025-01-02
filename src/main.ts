@@ -7,7 +7,7 @@ async function bootstrap() {
   const seederService = app.get(SeederService);
   await seederService.seed();
   app.use(cookieParser());
-  app.enableCors();
+  app.enableCors({ origin: `*` });
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

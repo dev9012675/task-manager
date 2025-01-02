@@ -285,6 +285,7 @@ export class UsersService {
     });
     return {
       message: 'Verification code generated successfully',
+      data: { verificationCode: verificationCode },
     };
   }
 

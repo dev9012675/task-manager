@@ -125,7 +125,7 @@ export class StripeService {
   }
 
   async createPaymentLink(userId: string, client_secret: string) {
-    const paymentLink = `http://127.0.0.1:5500/src/payment.html?userid=${userId}&client_secret=${client_secret}`;
+    const paymentLink = `https://internship-stripe-frontend.vercel.app/?userid=${userId}&client_secret=${client_secret}`;
     return paymentLink;
   }
 

@@ -50,6 +50,7 @@ export class MessagesService {
     );
     return {
       message: 'Message created successfully',
+      data: createdMessage,
     };
   }
 

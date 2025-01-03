@@ -25,8 +25,8 @@ export class MessagesService {
     private readonly roomService: RoomsService,
   ) {}
 
-  async create(message: CreateMessageDTO) {
-    const user = await this.usersService.findById(message.sender);
+  async create(message: CreateMessageDTO, sender: string) {
+    const user = await this.usersService.findById(sender);
     if (!user) {
       throw new NotFoundException(`User not found`);
     }
@@ -43,7 +43,10 @@ export class MessagesService {
       );
     }
 
-    const createdMessage = await this.messageModel.create(message);
+    const createdMessage = await this.messageModel.create({
+      ...message,
+      sender: sender,
+    });
     this.chatGateway.sendMessage(
       createdMessage,
       `${user.firstName} ${user.lastName}`,

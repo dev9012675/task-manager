@@ -15,9 +15,14 @@ import { Response } from 'express';
 import { SearchMessageDTO } from './dtos/message-search-dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
 import { TrialGuard } from 'src/common/guards/trial.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { Payload } from '../auth/types/auth.types';
+import { Role } from '../users/enums/users.enums';
+import { Roles } from 'src/common/decorators/role.decorator';
+import { RoleGuard } from 'src/common/guards/role.guard';
 
 @Controller('api/messages')
-@UseGuards(JwtAuthGuard, TrialGuard)
+@UseGuards(JwtAuthGuard, TrialGuard, RoleGuard)
 export class MessagesController {
   constructor(private readonly messageService: MessagesService) {}
 
@@ -29,12 +34,17 @@ export class MessagesController {
     }),
   )
   @Post()
-  async create(@Body() message: CreateMessageDTO) {
+  @Roles([Role.Manager, Role.Worker])
+  async create(
+    @Body() message: CreateMessageDTO,
+    @CurrentUser() user: Payload,
+  ) {
     console.log(`Message to be Created: ${message}`);
-    return await this.messageService.create(message);
+    return await this.messageService.create(message, user.userId);
   }
 
   @Get()
+  @Roles([Role.Manager, Role.Worker])
   @UsePipes(
     new ValidationPipe({
       transform: true,
